@@ -154,12 +154,15 @@ def drawPoly(poly):
 # Convert the projected endpoints to display coordinates via a call to 'convertToDisplayCoordinates'
 # draw the actual line using the built-in create_line method
 def drawLine(start,end):
+    # first convert the given start and end points to their perspective projection
     startproject = project(start)
     endproject = project(end)
 
+    # then displace the projection points so that the center of the canvas is the origin
     startdisplay = convertToDisplayCoordinates(startproject)
     enddisplay = convertToDisplayCoordinates(endproject)
 
+    # draw the line with the new canvas-centered points
     w.create_line(startdisplay[0],startdisplay[1],enddisplay[0],enddisplay[1])
     print("drawLine stub executed.")
 
@@ -169,9 +172,11 @@ def drawLine(start,end):
 def project(point):
     # grab the distance of the center of projection from the screen and use it to find the new points for ps
     global d
+    # just plug it into the perspective projection formula
     xps = (d*point[0])/(d+point[2])
     yps = (d*point[1])/(d+point[2])
     zps = point[2]/(d+point[2])
+    # create the new point perspective projection point
     ps = [xps, yps, zps]
     return ps
 
@@ -180,6 +185,7 @@ def project(point):
 # they are only used in rendering.
 def convertToDisplayCoordinates(point):
     displayXY = []
+    # reorient the components of the point so that the origin is in the center of the canvas with a positive y axis
     displayXY.append(point[0]+200)
     displayXY.append(-point[1]+200)
     displayXY.append(point[2])
