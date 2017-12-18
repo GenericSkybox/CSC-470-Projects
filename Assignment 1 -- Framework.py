@@ -1,3 +1,13 @@
+"""
+# Name: Eric Ortiz
+# Student Number: 102-39-903
+# Date: 12/19/17
+# Assignment #0
+# Desc: This program is a basic graphics engine that can display a 3D pyramid on a 2D coordinate plane. There are
+        a handful of tools also provided that allow the user to translate, scale, and rotation the pyramid -- along
+        with a reset button.
+"""
+
 import math
 from tkinter import *
 
