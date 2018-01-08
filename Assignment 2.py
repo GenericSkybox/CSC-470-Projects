@@ -225,11 +225,11 @@ objectNumber = 0
 
 # ***************************** Backend Button Functions ***************************
 
-# This function resets the pyramid to its original size and location in 3D space
-# Note that shortcuts like "apex = [0,50,100]" will not work as they build new
-# structures rather than modifying the existing Pyramid / PyramidPointCloud
+# This function resets the object to its original size and location in 3D space
 def resetPyramid(object):
+    # Just call the object's built-in reset function
     object.rebuildShape()
+
     print("resetPyramid stub executed.")
 
 
@@ -375,7 +375,7 @@ def rotateX(object, degrees):
 
     print("rotateX stub executed.")
 
-# The function will select the next object in the list of currentObjects
+# This function will select the next object in the list of currentObjects
 def selectNextObject():
     # Grab the global iterator for the selection and the list of objects
     global objectNumber
@@ -396,7 +396,7 @@ def selectNextObject():
     print("nextSelection stub executed.")
 
 
-# The function will select the previous object in the list of currentObjects
+# This function will select the previous object in the list of currentObjects
 def selectPrevObject():
     # Grab the global iterator for the selection and the list of objects
     global objectNumber
@@ -417,7 +417,7 @@ def selectPrevObject():
     print("prevSelection stub executed.")
 
 
-# The function will draw an object by repeatedly calling drawPoly on each polygon in the object
+# This function will draw an object by repeatedly calling drawPoly on each polygon in the object
 def drawObject(object):
     # Check to see if the passed in object is selected, then pass that to the drawPoly function
     if object.selected:
