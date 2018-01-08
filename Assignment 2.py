@@ -40,12 +40,12 @@ PyramidPointCloud = [apex, base1, base2, base3, base4]
 '''
 
 class Pyramid:
-    def __init__(self):
-        self.apex = [0, 50, 100]
-        self.base1 = [-50, -50, 50]
-        self.base2 = [50, -50, 50]
-        self.base3 = [50, -50, 150]
-        self.base4 = [-50, -50, 150]
+    def __init__(self, apex = [0, 50, 100], base1 = [-50, -50, 50], base2 = [50, -50, 50], base3 = [50, -50, 150], base4 = [-50, -50, 150]):
+        self.apex = apex
+        self.base1 = base1
+        self.base2 = base2
+        self.base3 = base3
+        self.base4 = base4
 
         self.frontpoly = [self.apex, self.base1, self.base2]
         self.rightpoly = [self.apex, self.base2, self.base3]
