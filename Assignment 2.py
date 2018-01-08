@@ -2,7 +2,7 @@
 # Name: Eric Ortiz
 # Student Number: 102-39-903
 # Date: 12/19/17
-# Assignment #0
+# Assignment #2
 # Desc: This program is a basic graphics engine that can display a 3D pyramid on a 2D coordinate plane. There are
         a handful of tools also provided that allow the user to translate, scale, and rotation the pyramid -- along
         with a reset button.
@@ -15,66 +15,187 @@ CanvasWidth = 400
 CanvasHeight = 400
 d = 500
 
-# ***************************** Initialize Pyramid Object ***************************
-'''
-# Definition  of the five underlying points
-apex = [0, 50, 100]
-base1 = [-50, -50, 50]
-base2 = [50, -50, 50]
-base3 = [50, -50, 150]
-base4 = [-50, -50, 150]
-
-# Definition of the five polygon faces using the meaningful point names
-# Polys are defined in counter clockwise order when viewed from the outside
-frontpoly = [apex, base1, base2]
-rightpoly = [apex, base2, base3]
-backpoly = [apex, base3, base4]
-leftpoly = [apex, base4, base1]
-bottompoly = [base4, base3, base2, base1]
-
-# Definition of the object
-Pyramid = [bottompoly, frontpoly, rightpoly, backpoly, leftpoly]
-
-# Definition of the Pyramid's underlying point cloud.  No structure, just the points.
-PyramidPointCloud = [apex, base1, base2, base3, base4]
-'''
-
+# ***************************** Initialize Object Classes ***************************
 class Pyramid:
-    def __init__(self, apex = [0, 50, 100], base1 = [-50, -50, 50], base2 = [50, -50, 50], base3 = [50, -50, 150], base4 = [-50, -50, 150]):
-        self.apex = apex
-        self.base1 = base1
-        self.base2 = base2
-        self.base3 = base3
-        self.base4 = base4
+    # The default constructor accepts five vertices
+    def __init__(self, apex=None, base1=None, base2=None, base3=None, base4=None):
+        # If no vertices are passed in, then we use the original default values
+        if apex is None:
+            # These vertices are mutated by different functions outside of the class
+            self.apex = [0, 50, 100]
+            self.base1 = [-50, -50, 50]
+            self.base2 = [50, -50, 50]
+            self.base3 = [50, -50, 150]
+            self.base4 = [-50, -50, 150]
+            # These vertices are never touched so that they are used only for resetting the object to its original
+            # position
+            self.defaultapex = [0, 50, 100]
+            self.defaultbase1 = [-50, -50, 50]
+            self.defaultbase2 = [50, -50, 50]
+            self.defaultbase3 = [50, -50, 150]
+            self.defaultbase4 = [-50, -50, 150]
+        # If vertices are passed in, then assign them to the object's built-in vertices
+        else:
+            self.apex = apex
+            self.base1 = base1
+            self.base2 = base2
+            self.base3 = base3
+            self.base4 = base4
+            # Also store them for the reset function in these variables. The list() function makes sure that these
+            # variables are creating new instances of the passed in values, so that it is no longer being passed in by
+            # reference.
+            self.defaultapex = list(apex)
+            self.defaultbase1 = list(base1)
+            self.defaultbase2 = list(base2)
+            self.defaultbase3 = list(base3)
+            self.defaultbase4 = list(base4)
 
+        # Once the vertices are created, we make the polygons of the pyramid
         self.frontpoly = [self.apex, self.base1, self.base2]
         self.rightpoly = [self.apex, self.base2, self.base3]
         self.backpoly = [self.apex, self.base3, self.base4]
-        self.leftpoly = [self.apex, self.base4, self.base1]
-        self.bottompoly = [self.base4, self.base3, self.base2, self.base1]
+        self.leftpoly = [self.apex, self.base1, self.base4]
+        # Because the base of the pyramid is a square, we break that face into two triangular polygons
+        self.bottompoly1 = [self.base1, self.base2, self.base4]
+        self.bottompoly2 = [self.base2, self.base3, self.base4]
 
-        self.shape = [self.bottompoly, self.frontpoly, self.rightpoly, self.backpoly, self.leftpoly]
+        # Finally we create the shape and the object's pointcloud
+        self.shape = [self.bottompoly1, self.bottompoly2, self.frontpoly, self.rightpoly, self.backpoly, self.leftpoly]
         self.pointcloud = [self.apex, self.base1, self.base2, self.base3, self.base4]
+
+    # This function is solely used to reset the object to its original position
+    def rebuildShape(self):
+        # Set the object's points to the value of the previously stored default ones by using the list() function.
+        # That prevents the default vertices from being "tied" to these vertices which will be changed constantly.
+        self.apex = list(self.defaultapex)
+        self.base1 = list(self.defaultbase1)
+        self.base2 = list(self.defaultbase2)
+        self.base3 = list(self.defaultbase3)
+        self.base4 = list(self.defaultbase4)
+
+        # Now we just rebuild the polygons, the shape, and the pointcloud
+        self.frontpoly = [self.apex, self.base1, self.base2]
+        self.rightpoly = [self.apex, self.base2, self.base3]
+        self.backpoly = [self.apex, self.base3, self.base4]
+        self.leftpoly = [self.apex, self.base1, self.base4]
+        self.bottompoly1 = [self.base1, self.base2, self.base4]
+        self.bottompoly2 = [self.base2, self.base3, self.base4]
+
+        self.shape = [self.bottompoly1, self.bottompoly2, self.frontpoly, self.rightpoly, self.backpoly, self.leftpoly]
+        self.pointcloud = [self.apex, self.base1, self.base2, self.base3, self.base4]
+
+    # End Pyramid Class
+
+class Cube:
+    # The default constructor accepts eight vertices
+    def __init__(self, base1=None, base2=None, base3=None, base4=None, base5=None, base6=None, base7=None, base8=None):
+        # If no vertices are passed in, then we use the original default values
+        if base1 is None:
+            # These vertices are mutated by different functions outside of the class
+            self.base1 = [-50, -50, 50]
+            self.base2 = [50, -50, 50]
+            self.base3 = [50, -50, 150]
+            self.base4 = [-50, -50, 150]
+            self.base5 = [-50, 50, 50]
+            self.base6 = [50, 50, 50]
+            self.base7 = [50, 50, 150]
+            self.base8 = [-50, 50, 150]
+            # These vertices are never touched so that they are used only for resetting the object to its original
+            # position
+            self.defaultbase1 = [-50, -50, 50]
+            self.defaultbase2 = [50, -50, 50]
+            self.defaultbase3 = [50, -50, 150]
+            self.defaultbase4 = [-50, -50, 150]
+            self.defaultbase5 = [-50, 50, 50]
+            self.defaultbase6 = [50, 50, 50]
+            self.defaultbase7 = [50, 50, 150]
+            self.defaultbase8 = [-50, 50, 150]
+        # If vertices are passed in, then assign them to the object's built-in vertices
+        else:
+            self.base1 = base1
+            self.base2 = base2
+            self.base3 = base3
+            self.base4 = base4
+            self.base5 = base5
+            self.base6 = base6
+            self.base7 = base7
+            self.base8 = base8
+            # Also store them for the reset function in these variables. The list() function makes sure that these
+            # variables are creating new instances of the passed in values, so that it is no longer being passed in by
+            # reference.
+            self.defaultbase1 = list(base1)
+            self.defaultbase2 = list(base2)
+            self.defaultbase3 = list(base3)
+            self.defaultbase4 = list(base4)
+            self.defaultbase5 = list(base5)
+            self.defaultbase6 = list(base6)
+            self.defaultbase7 = list(base7)
+            self.defaultbase8 = list(base8)
+
+        # Once the vertices are created, we make the polygons of the pyramid. Since the object is a cube, then every
+        # face of it has two polygons - which are just two triangles
+        self.frontpoly1 = [self.base1, self.base2, self.base6]
+        self.frontpoly2 = [self.base1, self.base5, self.base6]
+        self.backpoly1 = [self.base3, self.base4, self.base8]
+        self.backpoly2 = [self.base3, self.base7, self.base8]
+        self.leftpoly1 = [self.base1, self.base4, self.base5]
+        self.leftpoly2 = [self.base4, self.base5, self.base8]
+        self.rightpoly1 = [self.base2, self.base3, self.base7]
+        self.rightpoly2 = [self.base2, self.base6, self.base7]
+        self.bottompoly1 = [self.base1, self.base2, self.base4]
+        self.bottompoly2 = [self.base1, self.base3, self.base4]
+        self.toppoly1 = [self.base5, self.base6, self.base7]
+        self.toppoly2 = [self.base5, self.base7, self.base8]
+
+        # Finally we create the shape and the object's pointcloud
+        self.shape = [self.frontpoly1, self.frontpoly2, self.backpoly1, self.backpoly2, self.leftpoly1, self.leftpoly2, \
+                      self.rightpoly1, self.rightpoly2, self.bottompoly1, self.bottompoly1, self.toppoly1, self.toppoly2]
+        self.pointcloud = [self.base1, self.base2, self.base3, self.base4, self.base5, self.base6, self.base7, self.base8]
 
     def rebuildShape(self):
-        self.apex = [0, 50, 100]
-        self.base1 = [-50, -50, 50]
-        self.base2 = [50, -50, 50]
-        self.base3 = [50, -50, 150]
-        self.base4 = [-50, -50, 150]
+        # Set the object's points to the value of the previously stored default ones by using the list() function.
+        # That prevents the default vertices from being "tied" to these vertices which will be changed constantly.
+        self.base1 = list(self.defaultbase1)
+        self.base2 = list(self.defaultbase2)
+        self.base3 = list(self.defaultbase3)
+        self.base4 = list(self.defaultbase4)
+        self.base5 = list(self.defaultbase5)
+        self.base6 = list(self.defaultbase6)
+        self.base7 = list(self.defaultbase7)
+        self.base8 = list(self.defaultbase8)
 
-        self.frontpoly = [self.apex, self.base1, self.base2]
-        self.rightpoly = [self.apex, self.base2, self.base3]
-        self.backpoly = [self.apex, self.base3, self.base4]
-        self.leftpoly = [self.apex, self.base4, self.base1]
-        self.bottompoly = [self.base4, self.base3, self.base2, self.base1]
+        # Now we just rebuild the polygons, the shape, and the pointcloud
+        self.frontpoly1 = [self.base1, self.base2, self.base6]
+        self.frontpoly2 = [self.base1, self.base5, self.base6]
+        self.backpoly1 = [self.base3, self.base4, self.base8]
+        self.backpoly2 = [self.base3, self.base7, self.base8]
+        self.leftpoly1 = [self.base1, self.base4, self.base5]
+        self.leftpoly2 = [self.base4, self.base5, self.base8]
+        self.rightpoly1 = [self.base2, self.base3, self.base7]
+        self.rightpoly2 = [self.base2, self.base6, self.base7]
+        self.bottompoly1 = [self.base1, self.base2, self.base4]
+        self.bottompoly2 = [self.base1, self.base3, self.base4]
+        self.toppoly1 = [self.base5, self.base6, self.base7]
+        self.toppoly2 = [self.base5, self.base7, self.base8]
 
-        self.shape = [self.bottompoly, self.frontpoly, self.rightpoly, self.backpoly, self.leftpoly]
-        self.pointcloud = [self.apex, self.base1, self.base2, self.base3, self.base4]
+        self.shape = [self.frontpoly1, self.frontpoly2, self.backpoly1, self.backpoly2, self.leftpoly1, self.leftpoly2, \
+                      self.rightpoly1, self.rightpoly2, self.bottompoly1, self.bottompoly1, self.toppoly1,
+                      self.toppoly2]
+        self.pointcloud = [self.base1, self.base2, self.base3, self.base4, self.base5, self.base6, self.base7, self.base8]
 
-pyramidObject = Pyramid()
+# ***************************** Create the Objects ***************************
 
-# ************************************************************************************
+customCube1 = Cube([150, -50, 50], [250, -50, 50], [250, -50, 150], [150, -50, 150], [150, 50, 50], [250, 50, 50],
+                  [250, 50, 150], [150, 50, 150])
+
+customCube2 = Cube([-150, -50, 50], [-250, -50, 50], [-250, -50, 150], [-150, -50, 150], [-150, 50, 50], [-250, 50, 50],
+                  [-250, 50, 150], [-150, 50, 150])
+
+currentObject = [Pyramid(), customCube1, customCube2]
+
+objectNumber = 0
+
+# ***************************** Backend Button Functions ***************************
 
 # This function resets the pyramid to its original size and location in 3D space
 # Note that shortcuts like "apex = [0,50,100]" will not work as they build new
@@ -223,110 +344,148 @@ def project(point):
 def convertToDisplayCoordinates(point):
     displayXY = []
     # reorient the components of the point so that the origin is in the center of the canvas with a positive y axis
-    displayXY.append(point[0] + 200)
-    displayXY.append(-point[1] + 200)
+    displayXY.append(point[0] + CanvasWidth/2)
+    displayXY.append(-point[1] + CanvasHeight/2)
     displayXY.append(point[2])
     return displayXY
 
 
-# **************************************************************************
+# ***************************** Interface Functions ***************************
 # Everything below this point implements the interface
 def reset():
     w.delete(ALL)
-    resetPyramid(pyramidObject)
-    drawObject(pyramidObject)
+    resetPyramid(currentObject[objectNumber])
+    for i in range(len(currentObject)):
+        drawObject(currentObject[i])
 
 
 def larger():
     w.delete(ALL)
-    scale(pyramidObject.pointcloud, 1.1)
-    drawObject(pyramidObject)
+    scale(currentObject[objectNumber].pointcloud, 1.1)
+    for i in range(len(currentObject)):
+        drawObject(currentObject[i])
 
 
 def smaller():
     w.delete(ALL)
-    scale(pyramidObject.pointcloud, .9)
-    drawObject(pyramidObject)
+    scale(currentObject[objectNumber].pointcloud, .9)
+    for i in range(len(currentObject)):
+        drawObject(currentObject[i])
 
 
 def forward():
     w.delete(ALL)
-    translate(pyramidObject.pointcloud, [0, 0, 5])
-    drawObject(pyramidObject)
+    translate(currentObject[objectNumber].pointcloud, [0, 0, 5])
+    for i in range(len(currentObject)):
+        drawObject(currentObject[i])
 
 
 def backward():
     w.delete(ALL)
-    translate(pyramidObject.pointcloud, [0, 0, -5])
-    drawObject(pyramidObject)
+    translate(currentObject[objectNumber].pointcloud, [0, 0, -5])
+    for i in range(len(currentObject)):
+        drawObject(currentObject[i])
 
 
 def left():
     w.delete(ALL)
-    translate(pyramidObject.pointcloud, [-5, 0, 0])
-    drawObject(pyramidObject)
+    translate(currentObject[objectNumber].pointcloud, [-5, 0, 0])
+    for i in range(len(currentObject)):
+        drawObject(currentObject[i])
 
 
 def right():
     w.delete(ALL)
-    translate(pyramidObject.pointcloud, [5, 0, 0])
-    drawObject(pyramidObject)
+    translate(currentObject[objectNumber].pointcloud, [5, 0, 0])
+    for i in range(len(currentObject)):
+        drawObject(currentObject[i])
 
 
 def up():
     w.delete(ALL)
-    translate(pyramidObject.pointcloud, [0, 5, 0])
-    drawObject(pyramidObject)
+    translate(currentObject[objectNumber].pointcloud, [0, 5, 0])
+    for i in range(len(currentObject)):
+        drawObject(currentObject[i])
 
 
 def down():
     w.delete(ALL)
-    translate(pyramidObject.pointcloud, [0, -5, 0])
-    drawObject(pyramidObject)
+    translate(currentObject[objectNumber].pointcloud, [0, -5, 0])
+    for i in range(len(currentObject)):
+        drawObject(currentObject[i])
 
 
 def xPlus():
     w.delete(ALL)
-    rotateX(pyramidObject.pointcloud, 5)
-    drawObject(pyramidObject)
+    rotateX(currentObject[objectNumber].pointcloud, 5)
+    for i in range(len(currentObject)):
+        drawObject(currentObject[i])
 
 
 def xMinus():
     w.delete(ALL)
-    rotateX(pyramidObject.pointcloud, -5)
-    drawObject(pyramidObject)
+    rotateX(currentObject[objectNumber].pointcloud, -5)
+    for i in range(len(currentObject)):
+        drawObject(currentObject[i])
 
 
 def yPlus():
     w.delete(ALL)
-    rotateY(pyramidObject.pointcloud, 5)
-    drawObject(pyramidObject)
+    rotateY(currentObject[objectNumber].pointcloud, 5)
+    for i in range(len(currentObject)):
+        drawObject(currentObject[i])
 
 
 def yMinus():
     w.delete(ALL)
-    rotateY(pyramidObject.pointcloud, -5)
-    drawObject(pyramidObject)
+    rotateY(currentObject[objectNumber].pointcloud, -5)
+    for i in range(len(currentObject)):
+        drawObject(currentObject[i])
 
 
 def zPlus():
     w.delete(ALL)
-    rotateZ(pyramidObject.pointcloud, 5)
-    drawObject(pyramidObject)
+    rotateZ(currentObject[objectNumber].pointcloud, 5)
+    for i in range(len(currentObject)):
+        drawObject(currentObject[i])
 
 
 def zMinus():
     w.delete(ALL)
-    rotateZ(pyramidObject.pointcloud, -5)
-    drawObject(pyramidObject)
+    rotateZ(currentObject[objectNumber].pointcloud, -5)
+    for i in range(len(currentObject)):
+        drawObject(currentObject[i])
 
 
+def nextSelection():
+    global objectNumber
+
+    if objectNumber is 2:
+        objectNumber = 0
+    else:
+        objectNumber += 1
+
+    print("nextSelection stub executed.")
+
+
+def prevSelection():
+    global objectNumber
+
+    if objectNumber is -1:
+        objectNumber = 1
+    else:
+        objectNumber -= 1
+
+    print("prevSelection stub executed.")
+
+# ***************************** Interface and Window Construction ***************************
 root = Tk()
 outerframe = Frame(root)
 outerframe.pack()
 
 w = Canvas(outerframe, width=CanvasWidth, height=CanvasHeight)
-drawObject(pyramidObject)
+for i in range(len(currentObject)):
+    drawObject(currentObject[i])
 w.pack()
 
 controlpanel = Frame(outerframe)
@@ -401,4 +560,19 @@ zPlusButton.pack(side=LEFT)
 zMinusButton = Button(rotationcontrols, text="Z-", command=zMinus)
 zMinusButton.pack(side=LEFT)
 
+selectcontrols = Frame(controlpanel, borderwidth=2, relief=RIDGE)
+selectcontrols.pack(side=LEFT)
+
+selectcontrolslabel = Label(selectcontrols, text="Selection")
+selectcontrolslabel.pack()
+
+selectForwardButton = Button(selectcontrols, text="Next", command=nextSelection)
+selectForwardButton.pack(side=LEFT)
+
+selectBackwardButton = Button(selectcontrols, text="Previous", command=prevSelection)
+selectBackwardButton.pack(side=LEFT)
+
 root.mainloop()
+
+# TODO: Fix it so that when you rotate an object, its along its own axis rather than the world axis. Then make sure the
+# TODO: comments are all set and in place
