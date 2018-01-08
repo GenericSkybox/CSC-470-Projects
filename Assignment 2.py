@@ -1,7 +1,7 @@
 """
 # Name: Eric Ortiz
 # Student Number: 102-39-903
-# Date: 12/19/17
+# Date: 1/11/18
 # Assignment #2
 # Desc: This program is a basic graphics engine that can display a 3D pyramid on a 2D coordinate plane. There are
         a handful of tools also provided that allow the user to translate, scale, and rotation the pyramid -- along
@@ -69,6 +69,8 @@ class Pyramid:
         # Finally we create the shape and the object's pointcloud which contains all of the points of the object
         self.shape = [self.bottompoly1, self.bottompoly2, self.frontpoly, self.rightpoly, self.backpoly, self.leftpoly]
         self.pointcloud = [self.apex, self.base1, self.base2, self.base3, self.base4, self.origin]
+        # And we set the object to not be selected
+        self.selected = False
 
     # This function is solely used to reset the object to its original position
     def rebuildShape(self):
@@ -169,6 +171,8 @@ class Cube:
                       self.rightpoly1, self.rightpoly2, self.bottompoly1, self.bottompoly1, self.toppoly1, self.toppoly2]
         self.pointcloud = [self.base1, self.base2, self.base3, self.base4, self.base5, self.base6, self.base7,
                            self.base8, self.origin]
+        # And we set the object to not be selected
+        self.selected = False
 
     def rebuildShape(self):
         # Set the object's points to the value of the previously stored default ones by using the list() function.
@@ -206,14 +210,17 @@ class Cube:
 
 # ***************************** Create the Objects ***************************
 
+# This object is a cube off-set by 200 to the right
 customCube1 = Cube([150, -50, 50], [250, -50, 50], [250, -50, 150], [150, -50, 150], [150, 50, 50], [250, 50, 50],
                   [250, 50, 150], [150, 50, 150], [200, 0, 100])
 
+# This object is a cube off-set by 200 to the left
 customCube2 = Cube([-150, -50, 50], [-250, -50, 50], [-250, -50, 150], [-150, -50, 150], [-150, 50, 50], [-250, 50, 50],
                   [-250, 50, 150], [-150, 50, 150], [-200, 0, 100])
 
+# This is the main list of objects referenced later to be drawn
 currentObject = [Pyramid(), customCube1, customCube2]
-
+# This is the iterator to keep track of which object is selected
 objectNumber = 0
 
 # ***************************** Backend Button Functions ***************************
@@ -242,7 +249,7 @@ def translate(object, displacement):
 # This function performs a simple uniform scale of an object assuming the object is
 # centered at the origin.  The scalefactor is a scalar.
 def scale(object, scalefactor):
-    # Create a variable for object's origin (which is always set to be the last point in the pointcloud)q
+    # Create a variable for object's origin (which is always set to be the last point in the pointcloud)
     origin = object[-1]
 
     # Translate the object to the coordinate plane origin by using the object's own origin
@@ -252,7 +259,7 @@ def scale(object, scalefactor):
             point[j] -= origin[j]
 
     # Iterate through the points in the object and scale it by the scalefactor
-    for i in range(len(object)):
+    for i in range(len(object)-1):
         point = object[i]
         for j in range(len(point)):
             point[j] *= scalefactor
@@ -270,9 +277,9 @@ def scale(object, scalefactor):
 # by 'degrees', assuming the object is centered at the origin.  The rotation is CCW
 # in a LHS when viewed from -Z [the location of the viewer in the standard position]
 def rotateZ(object, degrees):
-    # first convert the degrees to radians
+    # First convert the degrees to radians
     radians = math.radians(degrees)
-    # Create a variable for object's origin (which is always set to be the last point in the pointcloud)q
+    # Then create a variable for object's origin (which is always set to be the last point in the pointcloud)
     origin = object[-1]
 
     # Translate the object to the coordinate plane origin by using the object's own origin
@@ -281,19 +288,22 @@ def rotateZ(object, degrees):
         for j in range(len(point)):
             point[j] -= origin[j]
 
-    # iterate through the polygons in the object and grab each point
-    for i in range(len(object)):
+    # Iterate through the polygons in the object and grab each point
+    for i in range(len(object)-1):
         point = object[i]
-        # so that the points don't get manipulated during computation, assign the x and y values separately
+        # So that the points don't get manipulated during computation, assign the x and y values separately
         x = point[0]
         y = point[1]
-        # use the z-rotation function
+        # Use the z-rotation function
         point[0] = (x * math.cos(radians)) - (y * math.sin(radians))
         point[1] = (x * math.sin(radians)) + (y * math.cos(radians))
 
-    for i in range(len(object)):
+    # Move the object back to its original position
+    for i in range(len(object)-1):
         point = object[i]
-        point
+        for j in range(len(point)):
+            point[j] += origin[j]
+
 
     print("rotateZ stub executed.")
 
@@ -302,9 +312,9 @@ def rotateZ(object, degrees):
 # by 'degrees', assuming the object is centered at the origin.  The rotation is CW
 # in a LHS when viewed from +Y looking toward the origin.
 def rotateY(object, degrees):
-    # first convert the degrees to radians
+    # First convert the degrees to radians
     radians = math.radians(degrees)
-    # Create a variable for object's origin (which is always set to be the last point in the pointcloud)q
+    # Then create a variable for object's origin (which is always set to be the last point in the pointcloud)
     origin = object[-1]
 
     # Translate the object to the coordinate plane origin by using the object's own origin
@@ -313,13 +323,13 @@ def rotateY(object, degrees):
         for j in range(len(point)):
             point[j] -= origin[j]
 
-    # iterate through the polygons in the object and grab each point
-    for i in range(len(object)):
+    # Iterate through the polygons in the object and grab each point
+    for i in range(len(object)-1):
         point = object[i]
-        # so that the points don't get manipulated during computation, assign the x and z values separately
+        # So that the points don't get manipulated during computation, assign the x and z values separately
         x = point[0]
         z = point[2]
-        # use the y-rotation function
+        # Use the y-rotation function
         point[0] = (x * math.cos(radians)) + (z * math.sin(radians))
         point[2] = (-1 * (x * math.sin(radians))) + (z * math.cos(radians))
 
@@ -336,41 +346,106 @@ def rotateY(object, degrees):
 # by 'degrees', assuming the object is centered at the origin.  The rotation is CW
 # in a LHS when viewed from +X looking toward the origin.
 def rotateX(object, degrees):
-    # first convert the degrees to radians
+    # First convert the degrees to radians
     radians = math.radians(degrees)
+    # Then create a variable for object's origin (which is always set to be the last point in the pointcloud)
+    origin = object[-1]
 
-    # iterate through the polygons in the object and grab each point
-    for i in range(len(object)):
+    # Translate the object to the coordinate plane origin by using the object's own origin
+    for i in range(len(object) - 1):
         point = object[i]
-        # so that the points don't get manipulated during computation, assign the y and z values separately
+        for j in range(len(point)):
+            point[j] -= origin[j]
+
+    # Iterate through the polygons in the object and grab each point
+    for i in range(len(object)-1):
+        point = object[i]
+        # So that the points don't get manipulated during computation, assign the y and z values separately
         y = point[1]
         z = point[2]
-        # use the x-rotation function
+        # Use the x-rotation function
         point[1] = (y * math.cos(radians)) - (z * math.sin(radians))
         point[2] = (y * math.sin(radians)) + (z * math.cos(radians))
 
+    # Move the object back to its original position
+    for i in range(len(object) - 1):
+        point = object[i]
+        for j in range(len(point)):
+            point[j] += origin[j]
+
     print("rotateX stub executed.")
+
+# The function will select the next object in the list of currentObjects
+def selectNextObject():
+    # Grab the global iterator for the selection and the list of objects
+    global objectNumber
+    global currentObject
+
+    # Unselect the currently selected object
+    currentObject[objectNumber].selected = False
+
+    # Iterate through the list of objects
+    if objectNumber is 2:
+        objectNumber = 0
+    else:
+        objectNumber += 1
+
+    # Reselect the object at the iterator
+    currentObject[objectNumber].selected = True
+
+    print("nextSelection stub executed.")
+
+
+# The function will select the previous object in the list of currentObjects
+def selectPrevObject():
+    # Grab the global iterator for the selection and the list of objects
+    global objectNumber
+    global currentObject
+
+    # Unselect the currently selected object
+    currentObject[objectNumber].selected = False
+
+    # Iterate through the list of objects
+    if objectNumber is -1:
+        objectNumber = 1
+    else:
+        objectNumber -= 1
+
+    # Reselect the object at the iterator
+    currentObject[objectNumber].selected = True
+
+    print("prevSelection stub executed.")
 
 
 # The function will draw an object by repeatedly calling drawPoly on each polygon in the object
 def drawObject(object):
+    # Check to see if the passed in object is selected, then pass that to the drawPoly function
+    if object.selected:
+        focused = True
+    else:
+        focused = False
+
+    # Iterate through the polygons of the object and pass it to drawPoly
     for i in range(len(object.shape)):
-        drawPoly(object.shape[i])
+        drawPoly(object.shape[i], focused)
+
     print("drawObject stub executed.")
 
 
 # This function will draw a polygon by repeatedly calling drawLine on each pair of points
 # making up the object.  Remember to draw a line between the last point and the first.
-def drawPoly(poly):
+def drawPoly(poly, selected):
+    # Iterate through the vertices of each polygon and pass each pair to the drawLine function
     for i in range(len(poly)):
-        drawLine(poly[i - 1], poly[i])
+        drawLine(poly[i - 1], poly[i], selected)
+
     print("drawPoly stub executed.")
 
 
 # Project the 3D endpoints to 2D point using a perspective projection implemented in 'project'
 # Convert the projected endpoints to display coordinates via a call to 'convertToDisplayCoordinates'
 # draw the actual line using the built-in create_line method
-def drawLine(start, end):
+def drawLine(start, end, selected):
     # first convert the given start and end points to their perspective projection
     startproject = project(start)
     endproject = project(end)
@@ -379,8 +454,14 @@ def drawLine(start, end):
     startdisplay = convertToDisplayCoordinates(startproject)
     enddisplay = convertToDisplayCoordinates(endproject)
 
-    # draw the line with the new canvas-centered points
-    w.create_line(startdisplay[0], startdisplay[1], enddisplay[0], enddisplay[1])
+    # If the object is selected, draw the lines in red. Otherwise, draw them in black
+    if selected is True:
+        # draw the line with the new canvas-centered points
+        w.create_line(startdisplay[0], startdisplay[1], enddisplay[0], enddisplay[1], fill="red")
+    else:
+        # draw the line with the new canvas-centered points
+        w.create_line(startdisplay[0], startdisplay[1], enddisplay[0], enddisplay[1])
+
     print("drawLine stub executed.")
 
 
@@ -519,25 +600,18 @@ def zMinus():
 
 
 def nextSelection():
-    global objectNumber
-
-    if objectNumber is 2:
-        objectNumber = 0
-    else:
-        objectNumber += 1
-
-    print("nextSelection stub executed.")
+    w.delete(ALL)
+    selectNextObject()
+    for i in range(len(currentObject)):
+        drawObject(currentObject[i])
 
 
 def prevSelection():
-    global objectNumber
+    w.delete(ALL)
+    selectPrevObject()
+    for i in range(len(currentObject)):
+        drawObject(currentObject[i])
 
-    if objectNumber is -1:
-        objectNumber = 1
-    else:
-        objectNumber -= 1
-
-    print("prevSelection stub executed.")
 
 # ***************************** Interface and Window Construction ***************************
 root = Tk()
@@ -545,6 +619,9 @@ outerframe = Frame(root)
 outerframe.pack()
 
 w = Canvas(outerframe, width=CanvasWidth, height=CanvasHeight)
+# We set the first object in the list of objects to be selected
+currentObject[0].selected = True
+# Then we iterate through the list of objects and create them
 for i in range(len(currentObject)):
     drawObject(currentObject[i])
 w.pack()
@@ -634,6 +711,3 @@ selectBackwardButton = Button(selectcontrols, text="Previous", command=prevSelec
 selectBackwardButton.pack(side=LEFT)
 
 root.mainloop()
-
-# TODO: Fix it so that when you rotate an object, its along its own axis rather than the world axis. Then make sure the
-# TODO: comments are all set and in place
