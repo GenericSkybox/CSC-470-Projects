@@ -161,10 +161,10 @@ class Cube:
         self.leftpoly2 = [self.base4, self.base5, self.base8]
         self.rightpoly1 = [self.base2, self.base3, self.base7]
         self.rightpoly2 = [self.base2, self.base6, self.base7]
-        self.bottompoly1 = [self.base1, self.base2, self.base4]
+        self.bottompoly1 = [self.base1, self.base2, self.base3]
         self.bottompoly2 = [self.base1, self.base3, self.base4]
-        self.toppoly1 = [self.base5, self.base6, self.base7]
-        self.toppoly2 = [self.base5, self.base7, self.base8]
+        self.toppoly1 = [self.base5, self.base6, self.base8]
+        self.toppoly2 = [self.base6, self.base7, self.base8]
 
         # Finally we create the shape and the object's pointcloud
         self.shape = [self.frontpoly1, self.frontpoly2, self.backpoly1, self.backpoly2, self.leftpoly1, self.leftpoly2, \
@@ -197,10 +197,10 @@ class Cube:
         self.leftpoly2 = [self.base4, self.base5, self.base8]
         self.rightpoly1 = [self.base2, self.base3, self.base7]
         self.rightpoly2 = [self.base2, self.base6, self.base7]
-        self.bottompoly1 = [self.base1, self.base2, self.base4]
+        self.bottompoly1 = [self.base1, self.base2, self.base3]
         self.bottompoly2 = [self.base1, self.base3, self.base4]
-        self.toppoly1 = [self.base5, self.base6, self.base7]
-        self.toppoly2 = [self.base5, self.base7, self.base8]
+        self.toppoly1 = [self.base5, self.base6, self.base8]
+        self.toppoly2 = [self.base6, self.base7, self.base8]
 
         self.shape = [self.frontpoly1, self.frontpoly2, self.backpoly1, self.backpoly2, self.leftpoly1, self.leftpoly2, \
                       self.rightpoly1, self.rightpoly2, self.bottompoly1, self.bottompoly1, self.toppoly1,
