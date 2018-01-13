@@ -8,10 +8,11 @@
         with a reset button.
 """
 
-# TODO: Change it so you create an object based on its center (using forumlas to create the points) and rename "origin".
 # TODO: Add backface culling. Add polygon filling.
 
 import math
+
+from operator import add
 from tkinter import *
 
 CanvasWidth = 550
@@ -20,59 +21,48 @@ d = 500
 
 # ***************************** Initialize Object Classes ***************************
 class Pyramid:
-    # The default constructor accepts five vertices
-    def __init__(self, apex=None, base1=None, base2=None, base3=None, base4=None, origin=None):
-        # If no vertices are passed in, then we use the original default values
-        if apex is None:
-            # These vertices are mutated by different functions outside of the class
-            self.apex = [0, 50, 100]
-            self.base1 = [-50, -50, 50]
-            self.base2 = [50, -50, 50]
-            self.base3 = [50, -50, 150]
-            self.base4 = [-50, -50, 150]
-            # Set the origin of the object for in-place transformations
-            self.origin = [0, 0, 100]
-            # These vertices are never touched so that they are used only for resetting the object to its original
-            # position
-            self.defaultapex = [0, 50, 100]
-            self.defaultbase1 = [-50, -50, 50]
-            self.defaultbase2 = [50, -50, 50]
-            self.defaultbase3 = [50, -50, 150]
-            self.defaultbase4 = [-50, -50, 150]
-            # The origin gets moved in object translations, so we need to keep track of it for resetting the object
-            self.defaultorigin = [0, 0, 100]
+    # The default constructor accepts a the height, base, and center of the pyramid
+    def __init__(self, height=100, base=100, center=list([0, 0, 100])):
+        # Create the height, base, and center of the pyramid based on the passed in parameters
+        self.height = height
+        self.base = base
+        self.center = center
 
-        # If vertices are passed in, then assign them to the object's built-in vertices
-        else:
-            self.apex = apex
-            self.base1 = base1
-            self.base2 = base2
-            self.base3 = base3
-            self.base4 = base4
-            self.origin = origin
-            # Also store them for the reset function in these variables. The list() function makes sure that these
-            # variables are creating new instances of the passed in values, so that it is no longer being passed in by
-            # reference.
-            self.defaultapex = list(apex)
-            self.defaultbase1 = list(base1)
-            self.defaultbase2 = list(base2)
-            self.defaultbase3 = list(base3)
-            self.defaultbase4 = list(base4)
-            self.defaultorigin = list(origin)
+        # Rename the variables so that they are easier to manage in point calculation
+        c = list(self.center)
+        h = self.height
+        b = self.base
 
-        # Once the vertices are created, we make the polygons of the pyramid
-        self.frontpoly = [self.apex, self.base1, self.base2]
-        self.rightpoly = [self.apex, self.base2, self.base3]
-        self.backpoly = [self.apex, self.base3, self.base4]
+        # Calculate the points based on the center, height, and base.
+        # Naming convention goes: counterclockwise from the bottom left corner
+        self.apex = list(map(add, c, [0, h / 2, 0]))
+        self.base1 = list(map(add, c, [-b / 2, -h / 2, -b / 2]))
+        self.base2 = list(map(add, c, [b / 2, -h / 2, -b / 2]))
+        self.base3 = list(map(add, c, [b / 2, -h / 2, b / 2]))
+        self.base4 = list(map(add, c, [-b / 2, -h / 2, b / 2]))
+
+        # Pass in the points by value to these default points to be used in the reset function
+        self.defaultapex = list(self.apex)
+        self.defaultbase1 = list(self.base1)
+        self.defaultbase2 = list(self.base2)
+        self.defaultbase3 = list(self.base3)
+        self.defaultbase4 = list(self.base4)
+        self.defaultcenter = list(self.center)
+
+        # Once the vertices are created, we make the polygons of the pyramid and order the vertices in clockwise order
+        self.frontpoly = [self.apex, self.base2, self.base1]
+        self.rightpoly = [self.apex, self.base3, self.base2]
+        self.backpoly = [self.apex, self.base4, self.base3]
         self.leftpoly = [self.apex, self.base1, self.base4]
         # Because the base of the pyramid is a square, we break that face into two triangular polygons
-        self.bottompoly1 = [self.base1, self.base2, self.base4]
-        self.bottompoly2 = [self.base2, self.base3, self.base4]
+        self.bottompoly1 = [self.base2, self.base3, self.base1]
+        self.bottompoly2 = [self.base4, self.base3, self.base1]
 
-        # Finally we create the shape and the object's pointcloud which contains all of the points of the object
+        # We then create the shape and the object's pointcloud, which contains all of the points of the object
         self.shape = [self.bottompoly1, self.bottompoly2, self.frontpoly, self.rightpoly, self.backpoly, self.leftpoly]
-        self.pointcloud = [self.apex, self.base1, self.base2, self.base3, self.base4, self.origin]
-        # And we set the object to not be selected
+        self.pointcloud = [self.apex, self.base1, self.base2, self.base3, self.base4, self.center]
+
+        # Lastly, we set the object to not be selected
         self.selected = False
 
     # This function is solely used to reset the object to its original position
@@ -84,97 +74,83 @@ class Pyramid:
         self.base2 = list(self.defaultbase2)
         self.base3 = list(self.defaultbase3)
         self.base4 = list(self.defaultbase4)
-        # Also reset the origin
-        self.origin = list(self.defaultorigin)
+        # Also reset the center
+        self.center = list(self.defaultcenter)
 
         # Now we just rebuild the polygons, the shape, and the pointcloud
-        self.frontpoly = [self.apex, self.base1, self.base2]
-        self.rightpoly = [self.apex, self.base2, self.base3]
-        self.backpoly = [self.apex, self.base3, self.base4]
+        self.frontpoly = [self.apex, self.base2, self.base1]
+        self.rightpoly = [self.apex, self.base3, self.base2]
+        self.backpoly = [self.apex, self.base4, self.base3]
         self.leftpoly = [self.apex, self.base1, self.base4]
-        self.bottompoly1 = [self.base1, self.base2, self.base4]
-        self.bottompoly2 = [self.base2, self.base3, self.base4]
+        self.bottompoly1 = [self.base2, self.base3, self.base1]
+        self.bottompoly2 = [self.base4, self.base3, self.base1]
 
         self.shape = [self.bottompoly1, self.bottompoly2, self.frontpoly, self.rightpoly, self.backpoly, self.leftpoly]
-        self.pointcloud = [self.apex, self.base1, self.base2, self.base3, self.base4, self.origin]
+        self.pointcloud = [self.apex, self.base1, self.base2, self.base3, self.base4, self.center]
 
     # End Pyramid Class
 
-class Cube:
-    # The default constructor accepts eight vertices
-    def __init__(self, base1=None, base2=None, base3=None, base4=None, base5=None, base6=None, base7=None, base8=None,
-                 origin=None):
-        # If no vertices are passed in, then we use the original default values
-        if base1 is None:
-            # These vertices are mutated by different functions outside of the class
-            self.base1 = [-50, -50, 50]
-            self.base2 = [50, -50, 50]
-            self.base3 = [50, -50, 150]
-            self.base4 = [-50, -50, 150]
-            self.base5 = [-50, 50, 50]
-            self.base6 = [50, 50, 50]
-            self.base7 = [50, 50, 150]
-            self.base8 = [-50, 50, 150]
-            # Set the origin of the object for in-place transformations
-            self.origin = [0, 0, 100]
-            # These vertices are never touched so that they are used only for resetting the object to its original
-            # position
-            self.defaultbase1 = [-50, -50, 50]
-            self.defaultbase2 = [50, -50, 50]
-            self.defaultbase3 = [50, -50, 150]
-            self.defaultbase4 = [-50, -50, 150]
-            self.defaultbase5 = [-50, 50, 50]
-            self.defaultbase6 = [50, 50, 50]
-            self.defaultbase7 = [50, 50, 150]
-            self.defaultbase8 = [-50, 50, 150]
-            # The origin gets moved in object translations, so we need to keep track of it for resetting the object
-            self.defaultorigin = [0, 0, 100]
+class Box:
+    # The default constructor accepts a height, length, depth, and center of the box
+    def __init__(self, height=100, length=100, depth=100, center=[0, 0, 100]):
+        # Create the height, length, depth, and center of the box based on the passed in parameters
+        self.height = height
+        self.length = length
+        self.depth = depth
+        self.center = center
 
-        # If vertices are passed in, then assign them to the object's built-in vertices
-        else:
-            self.base1 = base1
-            self.base2 = base2
-            self.base3 = base3
-            self.base4 = base4
-            self.base5 = base5
-            self.base6 = base6
-            self.base7 = base7
-            self.base8 = base8
-            self.origin = origin
-            # Also store them for the reset function in these variables. The list() function makes sure that these
-            # variables are creating new instances of the passed in values, so that it is no longer being passed in by
-            # reference.
-            self.defaultbase1 = list(base1)
-            self.defaultbase2 = list(base2)
-            self.defaultbase3 = list(base3)
-            self.defaultbase4 = list(base4)
-            self.defaultbase5 = list(base5)
-            self.defaultbase6 = list(base6)
-            self.defaultbase7 = list(base7)
-            self.defaultbase8 = list(base8)
-            self.defaultorigin = list(origin)
+        # Rename the variables so that they are easier to manage in point calculation
+        c = list(self.center)
+        h = self.height
+        l = self.length
+        d = self.depth
 
-        # Once the vertices are created, we make the polygons of the pyramid. Since the object is a cube, then every
+        # Calculate the points based on the center, length, height, and depth.
+        # Naming convention goes: counterclockwise from the bottom left corner, incrementing upwards (i.e. base1 is on
+        # the bottom while base5 is right above it
+        self.base1 = list(map(add, c, [-l / 2, -h / 2, -d / 2]))
+        self.base2 = list(map(add, c, [l / 2, -h / 2, -d / 2]))
+        self.base3 = list(map(add, c, [l / 2, -h / 2, d / 2]))
+        self.base4 = list(map(add, c, [-l / 2, -h / 2, d / 2]))
+        self.base5 = list(map(add, c, [-l / 2, h / 2, -d / 2]))
+        self.base6 = list(map(add, c, [l / 2, h / 2, -d / 2]))
+        self.base7 = list(map(add, c, [l / 2, h / 2, d / 2]))
+        self.base8 = list(map(add, c, [-l / 2, h / 2, d / 2]))
+
+        # Once the vertices are created, we make the polygons of the box. Since the object is rectangular, then every
         # face of it has two polygons - which are just two triangles
-        self.frontpoly1 = [self.base1, self.base2, self.base6]
-        self.frontpoly2 = [self.base1, self.base5, self.base6]
-        self.backpoly1 = [self.base3, self.base4, self.base8]
-        self.backpoly2 = [self.base3, self.base7, self.base8]
-        self.leftpoly1 = [self.base1, self.base4, self.base5]
-        self.leftpoly2 = [self.base4, self.base5, self.base8]
-        self.rightpoly1 = [self.base2, self.base3, self.base7]
-        self.rightpoly2 = [self.base2, self.base6, self.base7]
-        self.bottompoly1 = [self.base1, self.base2, self.base3]
-        self.bottompoly2 = [self.base1, self.base3, self.base4]
-        self.toppoly1 = [self.base5, self.base6, self.base8]
-        self.toppoly2 = [self.base6, self.base7, self.base8]
+        self.frontpoly1 = [self.base1, self.base5, self.base2]
+        self.frontpoly2 = [self.base6, self.base2, self.base5]
+        self.backpoly1 = [self.base3, self.base7, self.base4]
+        self.backpoly2 = [self.base8, self.base4, self.base7]
+        self.leftpoly1 = [self.base4, self.base8, self.base1]
+        self.leftpoly2 = [self.base5, self.base1, self.base8]
+        self.rightpoly1 = [self.base2, self.base6, self.base3]
+        self.rightpoly2 = [self.base7, self.base3, self.base6]
+        self.bottompoly1 = [self.base4, self.base3, self.base1]
+        self.bottompoly2 = [self.base2, self.base1, self.base3]
+        self.toppoly1 = [self.base5, self.base8, self.base6]
+        self.toppoly2 = [self.base7, self.base6, self.base8]
 
-        # Finally we create the shape and the object's pointcloud
-        self.shape = [self.frontpoly1, self.frontpoly2, self.backpoly1, self.backpoly2, self.leftpoly1, self.leftpoly2, \
-                      self.rightpoly1, self.rightpoly2, self.bottompoly1, self.bottompoly1, self.toppoly1, self.toppoly2]
+        # Pass in the points by value to these default points to be used in the reset function
+        self.defaultbase1 = list(self.base1)
+        self.defaultbase2 = list(self.base2)
+        self.defaultbase3 = list(self.base3)
+        self.defaultbase4 = list(self.base4)
+        self.defaultbase5 = list(self.base5)
+        self.defaultbase6 = list(self.base6)
+        self.defaultbase7 = list(self.base7)
+        self.defaultbase8 = list(self.base8)
+        self.defaultcenter = list(self.center)
+
+        # We then create the shape and the object's pointcloud, which contains all of the points of the object
+        self.shape = [self.frontpoly1, self.frontpoly2, self.backpoly1, self.backpoly2, self.leftpoly1, self.leftpoly2,
+                      self.rightpoly1, self.rightpoly2, self.bottompoly1, self.bottompoly2, self.toppoly1,
+                      self.toppoly2]
         self.pointcloud = [self.base1, self.base2, self.base3, self.base4, self.base5, self.base6, self.base7,
-                           self.base8, self.origin]
-        # And we set the object to not be selected
+                           self.base8, self.center]
+
+        # Lastly, we set the object to not be selected
         self.selected = False
 
     def rebuildShape(self):
@@ -188,41 +164,41 @@ class Cube:
         self.base6 = list(self.defaultbase6)
         self.base7 = list(self.defaultbase7)
         self.base8 = list(self.defaultbase8)
-        # Also reset the origin
-        self.origin = list(self.defaultorigin)
+        # Also reset the center
+        self.center = list(self.defaultcenter)
 
         # Now we just rebuild the polygons, the shape, and the pointcloud
-        self.frontpoly1 = [self.base1, self.base2, self.base6]
-        self.frontpoly2 = [self.base1, self.base5, self.base6]
-        self.backpoly1 = [self.base3, self.base4, self.base8]
-        self.backpoly2 = [self.base3, self.base7, self.base8]
-        self.leftpoly1 = [self.base1, self.base4, self.base5]
-        self.leftpoly2 = [self.base4, self.base5, self.base8]
-        self.rightpoly1 = [self.base2, self.base3, self.base7]
-        self.rightpoly2 = [self.base2, self.base6, self.base7]
-        self.bottompoly1 = [self.base1, self.base2, self.base3]
-        self.bottompoly2 = [self.base1, self.base3, self.base4]
-        self.toppoly1 = [self.base5, self.base6, self.base8]
-        self.toppoly2 = [self.base6, self.base7, self.base8]
+        self.frontpoly1 = [self.base1, self.base5, self.base2]
+        self.frontpoly2 = [self.base6, self.base2, self.base5]
+        self.backpoly1 = [self.base3, self.base7, self.base4]
+        self.backpoly2 = [self.base8, self.base4, self.base7]
+        self.leftpoly1 = [self.base4, self.base8, self.base1]
+        self.leftpoly2 = [self.base5, self.base1, self.base8]
+        self.rightpoly1 = [self.base2, self.base6, self.base3]
+        self.rightpoly2 = [self.base7, self.base3, self.base6]
+        self.bottompoly1 = [self.base4, self.base3, self.base1]
+        self.bottompoly2 = [self.base2, self.base1, self.base3]
+        self.toppoly1 = [self.base5, self.base8, self.base6]
+        self.toppoly2 = [self.base7, self.base6, self.base8]
 
-        self.shape = [self.frontpoly1, self.frontpoly2, self.backpoly1, self.backpoly2, self.leftpoly1, self.leftpoly2, \
-                      self.rightpoly1, self.rightpoly2, self.bottompoly1, self.bottompoly1, self.toppoly1,
+        self.shape = [self.frontpoly1, self.frontpoly2, self.backpoly1, self.backpoly2, self.leftpoly1, self.leftpoly2,
+                      self.rightpoly1, self.rightpoly2, self.bottompoly1, self.bottompoly2, self.toppoly1,
                       self.toppoly2]
         self.pointcloud = [self.base1, self.base2, self.base3, self.base4, self.base5, self.base6, self.base7,
-                           self.base8, self.origin]
+                           self.base8, self.center]
 
 # ***************************** Create the Objects ***************************
 
-# This object is a cube off-set by 200 to the right
-customCube1 = Cube([150, -50, 50], [250, -50, 50], [250, -50, 150], [150, -50, 150], [150, 50, 50], [250, 50, 50],
-                  [250, 50, 150], [150, 50, 150], [200, 0, 100])
 
-# This object is a cube off-set by 200 to the left
-customCube2 = Cube([-150, -50, 50], [-250, -50, 50], [-250, -50, 150], [-150, -50, 150], [-150, 50, 50], [-250, 50, 50],
-                  [-250, 50, 150], [-150, 50, 150], [-200, 0, 100])
+customCube1 = Box()
+
+customCube2 = Box(100, 50, 50, [-200, 0, 100])
+
+customPyramid = Pyramid(100, 200, [200, 0, 100])
+
 
 # This is the main list of objects referenced later to be drawn
-currentObject = [Pyramid(), customCube1, customCube2]
+currentObject = [customCube1, customCube2, customPyramid]
 # This is the iterator to keep track of which object is selected
 objectNumber = 0
 
@@ -253,13 +229,13 @@ def translate(object, displacement):
 # centered at the origin.  The scalefactor is a scalar.
 def scale(object, scalefactor):
     # Create a variable for object's origin (which is always set to be the last point in the pointcloud)
-    origin = object[-1]
+    center = object[-1]
 
-    # Translate the object to the coordinate plane origin by using the object's own origin
+    # Translate the object to the coordinate plane origin by using the center of the object
     for i in range(len(object)-1):
         point = object[i]
         for j in range(len(point)):
-            point[j] -= origin[j]
+            point[j] -= center[j]
 
     # Iterate through the points in the object and scale it by the scalefactor
     for i in range(len(object)-1):
@@ -271,7 +247,7 @@ def scale(object, scalefactor):
     for i in range(len(object)-1):
         point = object[i]
         for j in range(len(point)):
-            point[j] += origin[j]
+            point[j] += center[j]
 
     print("scale stub executed.")
 
@@ -282,14 +258,14 @@ def scale(object, scalefactor):
 def rotateZ(object, degrees):
     # First convert the degrees to radians
     radians = math.radians(degrees)
-    # Then create a variable for object's origin (which is always set to be the last point in the pointcloud)
-    origin = object[-1]
+    # Then create a variable for object's center (which is always set to be the last point in the pointcloud)
+    center = object[-1]
 
-    # Translate the object to the coordinate plane origin by using the object's own origin
+    # Translate the object to the coordinate plane origin by using the center of the object
     for i in range(len(object) - 1):
         point = object[i]
         for j in range(len(point)):
-            point[j] -= origin[j]
+            point[j] -= center[j]
 
     # Iterate through the polygons in the object and grab each point
     for i in range(len(object)-1):
@@ -305,7 +281,7 @@ def rotateZ(object, degrees):
     for i in range(len(object)-1):
         point = object[i]
         for j in range(len(point)):
-            point[j] += origin[j]
+            point[j] += center[j]
 
 
     print("rotateZ stub executed.")
@@ -317,14 +293,14 @@ def rotateZ(object, degrees):
 def rotateY(object, degrees):
     # First convert the degrees to radians
     radians = math.radians(degrees)
-    # Then create a variable for object's origin (which is always set to be the last point in the pointcloud)
-    origin = object[-1]
+    # Then create a variable for object's center (which is always set to be the last point in the pointcloud)
+    center = object[-1]
 
-    # Translate the object to the coordinate plane origin by using the object's own origin
+    # Translate the object to the coordinate plane origin by using the center of the object
     for i in range(len(object) - 1):
         point = object[i]
         for j in range(len(point)):
-            point[j] -= origin[j]
+            point[j] -= center[j]
 
     # Iterate through the polygons in the object and grab each point
     for i in range(len(object)-1):
@@ -340,7 +316,7 @@ def rotateY(object, degrees):
     for i in range(len(object) - 1):
         point = object[i]
         for j in range(len(point)):
-            point[j] += origin[j]
+            point[j] += center[j]
 
     print("rotateY stub executed.")
 
@@ -351,14 +327,14 @@ def rotateY(object, degrees):
 def rotateX(object, degrees):
     # First convert the degrees to radians
     radians = math.radians(degrees)
-    # Then create a variable for object's origin (which is always set to be the last point in the pointcloud)
-    origin = object[-1]
+    # Then create a variable for object's center (which is always set to be the last point in the pointcloud)
+    center = object[-1]
 
-    # Translate the object to the coordinate plane origin by using the object's own origin
+    # Translate the object to the coordinate plane origin by using the center of the object
     for i in range(len(object) - 1):
         point = object[i]
         for j in range(len(point)):
-            point[j] -= origin[j]
+            point[j] -= center[j]
 
     # Iterate through the polygons in the object and grab each point
     for i in range(len(object)-1):
@@ -374,7 +350,7 @@ def rotateX(object, degrees):
     for i in range(len(object) - 1):
         point = object[i]
         for j in range(len(point)):
-            point[j] += origin[j]
+            point[j] += center[j]
 
     print("rotateX stub executed.")
 
