@@ -2,13 +2,13 @@
 # Name: Eric Ortiz
 # Student Number: 102-39-903
 # Date: 1/11/18
-# Assignment #2
+# Assignment #3
 # Desc: This program is a basic graphics engine that can display a 3D pyramid on a 2D coordinate plane. There are
         a handful of tools also provided that allow the user to translate, scale, and rotation the pyramid -- along
         with a reset button.
 """
 
-# TODO: Add backface culling. Add polygon filling.
+# TODO: Add polygon filling.
 
 import math
 
@@ -18,11 +18,12 @@ from tkinter import *
 CanvasWidth = 550
 CanvasHeight = 550
 d = 500
+WIREFRAME = False
 
 # ***************************** Initialize Object Classes ***************************
 class Pyramid:
-    # The default constructor accepts a the height, base, and center of the pyramid
-    def __init__(self, height=100, base=100, center=list([0, 0, 100])):
+    # The default constructor accepts a the base, height, and center of the pyramid
+    def __init__(self, base=100, height=100, center=list([0, 0, 100])):
         # Create the height, base, and center of the pyramid based on the passed in parameters
         self.height = height
         self.base = base
@@ -50,13 +51,14 @@ class Pyramid:
         self.defaultcenter = list(self.center)
 
         # Once the vertices are created, we make the polygons of the pyramid and order the vertices in clockwise order
+        # which is needed for backface culling later
         self.frontpoly = [self.apex, self.base2, self.base1]
         self.rightpoly = [self.apex, self.base3, self.base2]
         self.backpoly = [self.apex, self.base4, self.base3]
         self.leftpoly = [self.apex, self.base1, self.base4]
         # Because the base of the pyramid is a square, we break that face into two triangular polygons
         self.bottompoly1 = [self.base2, self.base3, self.base1]
-        self.bottompoly2 = [self.base4, self.base3, self.base1]
+        self.bottompoly2 = [self.base4, self.base1, self.base3]
 
         # We then create the shape and the object's pointcloud, which contains all of the points of the object
         self.shape = [self.bottompoly1, self.bottompoly2, self.frontpoly, self.rightpoly, self.backpoly, self.leftpoly]
@@ -83,7 +85,7 @@ class Pyramid:
         self.backpoly = [self.apex, self.base4, self.base3]
         self.leftpoly = [self.apex, self.base1, self.base4]
         self.bottompoly1 = [self.base2, self.base3, self.base1]
-        self.bottompoly2 = [self.base4, self.base3, self.base1]
+        self.bottompoly2 = [self.base4, self.base1, self.base3]
 
         self.shape = [self.bottompoly1, self.bottompoly2, self.frontpoly, self.rightpoly, self.backpoly, self.leftpoly]
         self.pointcloud = [self.apex, self.base1, self.base2, self.base3, self.base4, self.center]
@@ -91,8 +93,8 @@ class Pyramid:
     # End Pyramid Class
 
 class Box:
-    # The default constructor accepts a height, length, depth, and center of the box
-    def __init__(self, height=100, length=100, depth=100, center=[0, 0, 100]):
+    # The default constructor accepts a length, height, depth, and center of the box
+    def __init__(self, length=100, height=100, depth=100, center=[0, 0, 100]):
         # Create the height, length, depth, and center of the box based on the passed in parameters
         self.height = height
         self.length = length
@@ -119,6 +121,7 @@ class Box:
 
         # Once the vertices are created, we make the polygons of the box. Since the object is rectangular, then every
         # face of it has two polygons - which are just two triangles
+        # Also, the vertices are ordered in clockwise order. This is used for backface culling later.
         self.frontpoly1 = [self.base1, self.base5, self.base2]
         self.frontpoly2 = [self.base6, self.base2, self.base5]
         self.backpoly1 = [self.base3, self.base7, self.base4]
@@ -127,8 +130,8 @@ class Box:
         self.leftpoly2 = [self.base5, self.base1, self.base8]
         self.rightpoly1 = [self.base2, self.base6, self.base3]
         self.rightpoly2 = [self.base7, self.base3, self.base6]
-        self.bottompoly1 = [self.base4, self.base3, self.base1]
-        self.bottompoly2 = [self.base2, self.base1, self.base3]
+        self.bottompoly1 = [self.base2, self.base3, self.base1]
+        self.bottompoly2 = [self.base4, self.base1, self.base3]
         self.toppoly1 = [self.base5, self.base8, self.base6]
         self.toppoly2 = [self.base7, self.base6, self.base8]
 
@@ -176,8 +179,8 @@ class Box:
         self.leftpoly2 = [self.base5, self.base1, self.base8]
         self.rightpoly1 = [self.base2, self.base6, self.base3]
         self.rightpoly2 = [self.base7, self.base3, self.base6]
-        self.bottompoly1 = [self.base4, self.base3, self.base1]
-        self.bottompoly2 = [self.base2, self.base1, self.base3]
+        self.bottompoly1 = [self.base2, self.base3, self.base1]
+        self.bottompoly2 = [self.base4, self.base1, self.base3]
         self.toppoly1 = [self.base5, self.base8, self.base6]
         self.toppoly2 = [self.base7, self.base6, self.base8]
 
@@ -189,16 +192,16 @@ class Box:
 
 # ***************************** Create the Objects ***************************
 
-
+# Create a box in the middle of the frame
 customCube1 = Box()
-
+# Create a box offset by -200 in x and 100 in z, and make it longer
 customCube2 = Box(100, 50, 50, [-200, 0, 100])
-
-customPyramid = Pyramid(100, 200, [200, 0, 100])
+# Create a pyramid that is taller than it is wide, 200 in x and 100 in z
+customPyramid = Pyramid(100, 150, [200, 0, 100])
 
 
 # This is the main list of objects referenced later to be drawn
-currentObject = [customCube1, customCube2, customPyramid]
+currentObject = [customCube1, customPyramid, customCube2]
 # This is the iterator to keep track of which object is selected
 objectNumber = 0
 
@@ -360,11 +363,12 @@ def selectNextObject():
     global objectNumber
     global currentObject
 
-    # Unselect the currently selected object
+    # Deselect the currently selected object
     currentObject[objectNumber].selected = False
 
-    # Iterate through the list of objects
-    if objectNumber is 2:
+    # Iterate through the list of objects, unless if the object is at the end of the list. In which case, make the
+    # iterator 0 again
+    if objectNumber is (len(currentObject)-1):
         objectNumber = 0
     else:
         objectNumber += 1
@@ -381,12 +385,13 @@ def selectPrevObject():
     global objectNumber
     global currentObject
 
-    # Unselect the currently selected object
+    # Deselect the currently selected object
     currentObject[objectNumber].selected = False
 
-    # Iterate through the list of objects
-    if objectNumber is -1:
-        objectNumber = 1
+    # Iterate through the list of objects, unless if the object is at the beginning of the list. Then make the iterator
+    # the last item in the list
+    if objectNumber is 0:
+        objectNumber = (len(currentObject)-1)
     else:
         objectNumber -= 1
 
@@ -415,8 +420,9 @@ def drawObject(object):
 # making up the object.  Remember to draw a line between the last point and the first.
 def drawPoly(poly, selected):
     # Iterate through the vertices of each polygon and pass each pair to the drawLine function
+    # Also pass the polygon itself so that it can be used in the backface culling function
     for i in range(len(poly)):
-        drawLine(poly[i - 1], poly[i], selected)
+        drawLine(poly[i - 1], poly[i], selected, poly)
 
     print("drawPoly stub executed.")
 
@@ -424,22 +430,28 @@ def drawPoly(poly, selected):
 # Project the 3D endpoints to 2D point using a perspective projection implemented in 'project'
 # Convert the projected endpoints to display coordinates via a call to 'convertToDisplayCoordinates'
 # draw the actual line using the built-in create_line method
-def drawLine(start, end, selected):
-    # first convert the given start and end points to their perspective projection
+def drawLine(start, end, selected, poly):
+    # First convert the given start and end points to their perspective projection
     startproject = project(start)
     endproject = project(end)
 
-    # then displace the projection points so that the center of the canvas is the origin
+    # Then run one of the perspective points and the polygon through the backface culling method, which should return a
+    # boolean
+    frontface = backfaceCulling(poly, startproject)
+
+    # Displace the projection points so that the center of the canvas is the origin
     startdisplay = convertToDisplayCoordinates(startproject)
     enddisplay = convertToDisplayCoordinates(endproject)
 
-    # If the object is selected, draw the lines in red. Otherwise, draw them in black
-    if selected is True:
-        # draw the line with the new canvas-centered points
-        w.create_line(startdisplay[0], startdisplay[1], enddisplay[0], enddisplay[1], fill="red")
-    else:
-        # draw the line with the new canvas-centered points
-        w.create_line(startdisplay[0], startdisplay[1], enddisplay[0], enddisplay[1])
+    # If the face is supposed to be shown, draw the line. Otherwise, do nothing
+    if frontface:
+        # If the object is selected, draw the lines in red. Otherwise, draw them in black
+        if selected is True:
+            # Draw the line with the new canvas-centered points, but in red!
+            w.create_line(startdisplay[0], startdisplay[1], enddisplay[0], enddisplay[1], fill="red")
+        else:
+            # Draw the line with the new canvas-centered points
+            w.create_line(startdisplay[0], startdisplay[1], enddisplay[0], enddisplay[1])
 
     print("drawLine stub executed.")
 
@@ -448,15 +460,46 @@ def drawLine(start, end, selected):
 # will return a NEW list of points.  We will not want to keep around the projected points in our object as
 # they are only used in rendering
 def project(point):
-    # grab the distance of the center of projection from the screen and use it to find the new points for ps
+    # Grab the distance of the center of projection from the screen and use it to find the new points for ps
     global d
-    # just plug it into the perspective projection formula
+    # Just plug it into the perspective projection formula
     xps = (d * point[0]) / (d + point[2])
     yps = (d * point[1]) / (d + point[2])
     zps = point[2] / (d + point[2])
-    # create the new point perspective projection point
+    # Create the new point perspective projection point
     ps = [xps, yps, zps]
     return ps
+
+
+# This function is removes the back faces of an object that are pointing away from the camera.
+def backfaceCulling(poly, q):
+    # q is the perspective projected point that is on the polygon named "poly"
+
+    # First we grab the global boolean WIREFRAME to see if we even need to cull
+    global WIREFRAME
+
+    # If WIREFRAME is true, then we'll show the backfaces, return true, and not even bother calculating
+    if WIREFRAME:
+        return True
+
+    # Otherwise, we'll grab the points from the polygon, which should be arranged in clockwise order
+    p0 = poly[0]
+    p1 = poly[1]
+    p2 = poly[2]
+
+    # Then we create the x, y, and z components of the surface normal by running the former three points through a
+    # cross-product
+    A = ((p1[1] - p0[1]) * (p2[2] - p0[2]) - (p2[1] - p0[1]) * (p1[2] - p0[2]))
+    B = -((p1[0] - p0[0]) * (p2[2] - p0[2]) - (p2[0] - p0[0]) * (p1[2] - p0[2]))
+    C = ((p1[0] - p0[0]) * (p2[1] - p0[1]) - (p2[0] - p0[0]) * (p1[1] - p0[1]))
+
+    # Lastly, we compute the plane offset as the dot product of the surface normal and the perspective point on the
+    # polygon
+    offset = q[0] * A + q[1] * B + q[2] * C
+
+    # So if the z component of the surface normal times the screen depth (d) minus the plane offset is less than zero,
+    # the point is on the positive side of the plane.
+    return (C * (-d) - offset) > 0
 
 
 # This function converts a 2D point to display coordinates in the tk system.  Note that it will return a
@@ -464,7 +507,7 @@ def project(point):
 # they are only used in rendering.
 def convertToDisplayCoordinates(point):
     displayXY = []
-    # reorient the components of the point so that the origin is in the center of the canvas with a positive y axis
+    # Reorient the components of the point so that the origin is in the center of the canvas with a positive y axis
     displayXY.append(point[0] + CanvasWidth/2)
     displayXY.append(-point[1] + CanvasHeight/2)
     displayXY.append(point[2])
@@ -592,6 +635,18 @@ def prevSelection():
         drawObject(currentObject[i])
 
 
+def backfaceToggle():
+    global WIREFRAME
+    w.delete(ALL)
+    WIREFRAME = not WIREFRAME
+
+    print("toggle stub executed.")
+
+    for i in range(len(currentObject)):
+        drawObject(currentObject[i])
+
+
+
 # ***************************** Interface and Window Construction ***************************
 root = Tk()
 outerframe = Frame(root)
@@ -683,10 +738,19 @@ selectcontrols.pack(side=LEFT)
 selectcontrolslabel = Label(selectcontrols, text="Selection")
 selectcontrolslabel.pack()
 
+selectBackwardButton = Button(selectcontrols, text="Prev", command=prevSelection)
+selectBackwardButton.pack(side=LEFT)
+
 selectForwardButton = Button(selectcontrols, text="Next", command=nextSelection)
 selectForwardButton.pack(side=LEFT)
 
-selectBackwardButton = Button(selectcontrols, text="Previous", command=prevSelection)
-selectBackwardButton.pack(side=LEFT)
+wireframecontrols = Frame(controlpanel, borderwidth=2, relief=RIDGE)
+wireframecontrols.pack(side=LEFT)
+
+wireframecontrolslabel = Label(wireframecontrols, text="Wireframe")
+wireframecontrolslabel.pack()
+
+wireframeToggle = Checkbutton(wireframecontrols, text="Toggle", command=backfaceToggle)
+wireframeToggle.pack(side=LEFT)
 
 root.mainloop()
