@@ -438,6 +438,8 @@ def drawLine(start, end, selected, poly):
     # Then run one of the perspective points and the polygon through the backface culling method, which should return a
     # boolean
     frontface = backfaceCulling(poly, startproject)
+    table = createTable(poly)
+    scan(table, frontface)
 
     # Displace the projection points so that the center of the canvas is the origin
     startdisplay = convertToDisplayCoordinates(startproject)
@@ -512,6 +514,93 @@ def convertToDisplayCoordinates(point):
     displayXY.append(-point[1] + CanvasHeight/2)
     displayXY.append(point[2])
     return displayXY
+
+
+def createTable(poly):
+    """
+    for i in range(len(poly)):
+        vertex = poly[i]
+        y = math.trunc(vertex[1]) + 0.5
+    """
+
+    table = []
+    edgeOne = [poly[0], poly[1]]
+    edgeTwo = [poly[1], poly[2]]
+    edgeThree = [poly[2], poly[0]]
+
+    rowOne = createRow(edgeOne)
+    rowTwo = createRow(edgeTwo)
+    rowThree = createRow(edgeThree)
+
+
+    if rowOne[0] >= rowTwo[0] and rowOne[0] >= rowThree[0]:
+        table.append(rowOne)
+
+        if rowTwo[0] >= rowThree[0]:
+            table.extend((rowTwo, rowThree))
+        else:
+            table.extend((rowThree, rowTwo))
+
+    elif rowTwo[0] >= rowOne[0] and rowTwo[0] >= rowThree[0]:
+        table.append(rowTwo)
+
+        if rowOne[0] >= rowThree[0]:
+            table.extend((rowOne, rowThree))
+        else:
+            table.extend((rowThree, rowOne))
+
+    else:
+        table.append(rowThree)
+
+        if rowOne[0] >= rowTwo[0]:
+            table.extend((rowOne, rowTwo))
+        else:
+            table.extend((rowTwo, rowOne))
+
+    return table
+
+
+def createRow(edge):
+    x0 = edge[0][0]
+    y0 = edge[0][1]
+    x1 = edge[1][0]
+    y1 = edge[1][1]
+
+    if y0 > y1:
+        ymax = y0
+        ymin = y1
+    else:
+        ymax = y1
+        ymin = y0
+
+    if y1-y0 == 0:
+        dx = 0
+    else:
+        dx = -((x1-x0)/(y1-y0))
+
+    initialx = x1 + (dx / 2)
+
+    return [ymax, ymin, dx, initialx]
+
+
+def scan(table, frontface):
+    if frontface is True:
+        edgeOne = table[0]
+        edgeTwo = table[1]
+        x1 = edgeOne[3]
+        x2 = edgeTwo[3]
+        ymax = edgeOne[0]
+        ymin = edgeOne[1]
+        scanPoint = [x1, ymax]
+
+        for i in range(math.trunc(ymax), math.trunc(ymin), -1):
+
+            for j in range(math.trunc(x1), math.trunc(x2), 1):
+                w.create_oval(scanPoint[0], scanPoint[1], scanPoint[0], scanPoint[1], fill="black")
+                scanPoint[0] = j
+
+            scanPoint[1] = i
+
 
 
 # ***************************** Interface Functions ***************************
