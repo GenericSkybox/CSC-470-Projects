@@ -585,21 +585,43 @@ def createRow(edge):
 
 def scan(table, frontface):
     if frontface is True:
-        edgeOne = table[0]
-        edgeTwo = table[1]
-        x1 = edgeOne[3]
-        x2 = edgeTwo[3]
-        ymax = edgeOne[0]
-        ymin = edgeOne[1]
-        scanPoint = [x1, ymax]
+        for i in range(len(table)-1):
+            edgeOne = table[i]
+            edgeTwo = table[i+1]
 
-        for i in range(math.trunc(ymax), math.trunc(ymin), -1):
+            x1 = edgeOne[3]
+            x2 = edgeTwo[3]
+            dx1 = edgeOne[2]
+            dx2 = edgeTwo[2]
+            ymax = edgeOne[0]
 
-            for j in range(math.trunc(x1), math.trunc(x2), 1):
-                w.create_oval(scanPoint[0], scanPoint[1], scanPoint[0], scanPoint[1], fill="black")
-                scanPoint[0] = j
+            if x1 < x2:
+                pointer = [x1, ymax]
+                endpointer = [x2, ymax]
+            else:
+                pointer = [x2, ymax]
+                endpointer = [x1, ymax]
 
-            scanPoint[1] = i
+            if edgeOne[1] > edgeTwo[1]:
+                ymin = edgeOne[1]
+            else:
+                ymin = edgeTwo[1]
+
+            for i in range(math.trunc(ymax), math.trunc(ymin), -1):
+                for j in range(math.trunc(x1), math.trunc(x2), 1):
+                    w.create_line(pointer[0], pointer[1], endpointer[0], endpointer[1], fill="blue")
+                    pointer[0] = j
+
+                x1 += dx1
+                x2 += dx2
+
+                if x1 < x2:
+                    pointer = [x1, i]
+                    endpointer = [x2, i]
+                else:
+                    pointer = [x2, i]
+                    endpointer = [x1, i]
+
 
 
 
