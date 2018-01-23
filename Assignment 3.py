@@ -522,8 +522,8 @@ def scan(poly):
 
     while pointer[1] > table[0][1] and pointer[1] > table[1][1]:
         while pointer[0] <= table[1][2]:
-            w.create_oval(pointer[0], pointer[1], pointer[0], pointer[1], fill="black")
-            pointer[0] += 5
+            w.create_oval(pointer[0], pointer[1], pointer[0], pointer[1], fill="green", outline="green")
+            pointer[0] += 3
 
         table[0][2] += table[0][3]
         table[1][2] += table[1][3]
@@ -539,12 +539,12 @@ def scan(poly):
     if table[0][2] > table[1][2]:
         table[0], table[1] = table[1], table[0]
 
-    pointer = [table[0][2], table[0][0]]
+    #pointer = [table[0][2], table[0][0]]
 
     while pointer[1] > table[0][1] and pointer[1] > table[1][1]:
         while pointer[0] < table[1][2]:
-            w.create_oval(pointer[0], pointer[1], pointer[0], pointer[1], fill="blue")
-            pointer[0] += 10
+            w.create_oval(pointer[0], pointer[1], pointer[0], pointer[1], fill="blue", outline="blue")
+            pointer[0] += 3
             
         table[0][2] += table[0][3]
         table[1][2] += table[1][3]
