@@ -435,20 +435,19 @@ def drawLine(start, end, selected, poly):
     startproject = project(start)
     endproject = project(end)
 
-    # Then run one of the perspective points and the polygon through the backface culling method, which should return a
-    # boolean
-    frontface = backfaceCulling(poly, startproject)
-    table = createTable(poly)
-    scan(table, frontface)
-
     # Displace the projection points so that the center of the canvas is the origin
     startdisplay = convertToDisplayCoordinates(startproject)
     enddisplay = convertToDisplayCoordinates(endproject)
+
+    # Then run one of the perspective points and the polygon through the backface culling method, which should return a
+    # boolean
+    frontface = backfaceCulling(poly, startproject)
 
     # If the face is supposed to be shown, draw the line. Otherwise, do nothing
     if frontface:
         # If the object is selected, draw the lines in red. Otherwise, draw them in black
         if selected is True:
+            scan(poly)
             # Draw the line with the new canvas-centered points, but in red!
             w.create_line(startdisplay[0], startdisplay[1], enddisplay[0], enddisplay[1], fill="red")
         else:
@@ -471,6 +470,18 @@ def project(point):
     # Create the new point perspective projection point
     ps = [xps, yps, zps]
     return ps
+
+
+# This function converts a 2D point to display coordinates in the tk system.  Note that it will return a
+# NEW list of points.  We will not want to keep around the display coordinate points in our object as
+# they are only used in rendering.
+def convertToDisplayCoordinates(point):
+    displayXY = []
+    # Reorient the components of the point so that the origin is in the center of the canvas with a positive y axis
+    displayXY.append(point[0] + CanvasWidth/2)
+    displayXY.append(-point[1] + CanvasHeight/2)
+    displayXY.append(point[2])
+    return displayXY
 
 
 # This function is removes the back faces of an object that are pointing away from the camera.
@@ -504,125 +515,134 @@ def backfaceCulling(poly, q):
     return (C * (-d) - offset) > 0
 
 
-# This function converts a 2D point to display coordinates in the tk system.  Note that it will return a
-# NEW list of points.  We will not want to keep around the display coordinate points in our object as
-# they are only used in rendering.
-def convertToDisplayCoordinates(point):
-    displayXY = []
-    # Reorient the components of the point so that the origin is in the center of the canvas with a positive y axis
-    displayXY.append(point[0] + CanvasWidth/2)
-    displayXY.append(-point[1] + CanvasHeight/2)
-    displayXY.append(point[2])
-    return displayXY
+def scan(poly):
+    table = createTable(poly)
+    pointer = [table[0][3], table[0][0]]
+
+    while pointer[1] >= table[0][1] and pointer[1] >= table[1][1]:
+        while pointer[0] < table[1][2]:
+            w.create_oval(pointer[0], pointer[1], pointer[0], pointer[1], fill="black")
+            pointer[0] += 1
+        table[0][2] += table[0][3]
+        table[1][2] += table[1][3]
+        pointer[0] = table[0][2]
+        pointer[1] -= 1
 
 
-def createTable(poly):
-    """
-    for i in range(len(poly)):
-        vertex = poly[i]
-        y = math.trunc(vertex[1]) + 0.5
-    """
-
-    table = []
-    edgeOne = [poly[0], poly[1]]
-    edgeTwo = [poly[1], poly[2]]
-    edgeThree = [poly[2], poly[0]]
-
-    rowOne = createRow(edgeOne)
-    rowTwo = createRow(edgeTwo)
-    rowThree = createRow(edgeThree)
-
-
-    if rowOne[0] >= rowTwo[0] and rowOne[0] >= rowThree[0]:
-        table.append(rowOne)
-
-        if rowTwo[0] >= rowThree[0]:
-            table.extend((rowTwo, rowThree))
-        else:
-            table.extend((rowThree, rowTwo))
-
-    elif rowTwo[0] >= rowOne[0] and rowTwo[0] >= rowThree[0]:
-        table.append(rowTwo)
-
-        if rowOne[0] >= rowThree[0]:
-            table.extend((rowOne, rowThree))
-        else:
-            table.extend((rowThree, rowOne))
-
+    if table[0][1] > table[1][1]:
+        del table[0]
     else:
+        del table[1]
+
+    if table[0][2] < table[1][2]:
+        temp = list(table[0])
+        table[0] = list(table[1])
+        table[1] = list(temp)
+
+    while pointer[1] > table[0][1] and pointer[1] > table[1][1]:
+        while pointer[0] < table[1][2]-1:
+            w.create_oval(pointer[0], pointer[1], pointer[0], pointer[1], fill="blue")
+            pointer[0] += 1
+        table[0][2] += table[0][3]
+        table[1][2] += table[1][3]
+        pointer[0] = table[0][2]
+        pointer[1] -= 1
+
+
+
+
+
+# This function creates a table where each row represents the edge of the triangular polygon passed in. Each row
+# contains the edge's ymax, ymin, initial x, and negative inverse slope. All of this is used in computing the polygon
+# fill of a face of the object
+def createTable(poly):
+    # First we create an empty list of the vertices in the polygon and we intialize the table
+    vertices = []
+    table = []
+
+    # We then run through the list of vertices and convert them all to display coordinates
+    for i in range(len(poly)):
+        vertices.append(convertToDisplayCoordinates(project(poly[i])))
+
+    # Out of the new vertices, we create 3 edges, which corrsepond to the ones initialized in the polygon in the
+    # object's class
+    edgeList = [[vertices[0], vertices[1]], [vertices[1], vertices[2]], [vertices[2], vertices[0]]]
+
+    # For each edge, we determine its ymax, ymin, initial x, and negative inverse slope before adding those values to
+    # its corresponding row
+    for i in range(len(edgeList)):
+        # First we grab an edge and check to see which of the two points has the higher y value
+        edge = edgeList[i]
+
+        if edge[0][1] > edge[1][1]:
+            # From there, we set the maximum y value of the edge accordingly, with the other y value automatically being
+            # the minimum
+            ymax = edge[0][1]
+            ymin = edge[1][1]
+            # The initial x1 value of the edge corresponds to the point with the highest y value. The other x2 value is
+            # just used later the slope calculation
+            x1 = edge[0][0]
+            x2 = edge[1][0]
+        else:
+            ymin = edge[0][1]
+            ymax = edge[1][1]
+            x2 = edge[0][0]
+            x1 = edge[1][0]
+
+        # If the edge is a vertical line, then we need to set the negative inverse slope to 0
+        if ymax - ymin != 0:
+            dx = -((x1 - x2) / (ymax - ymin))
+        else:
+            dx = 0
+
+        # Then we create the rows based on which edge is being evaluated
+        if i == 0:
+            rowOne = [ymax, ymin, x1, dx]
+        elif i == 1:
+            rowTwo = [ymax, ymin, x1, dx]
+        else:
+            rowThree = [ymax, ymin, x1, dx]
+
+    # Once we're done creating the rows, we need to order the edges in the table by their ymax and then their "slope"
+    # This is done be checking which two edges share the same ymax - since this would imply those two edges have the
+    # shared highest of the three
+    if rowOne[0] == rowTwo[0]:
+        # Once we determine which two edges have the shared ymax, we need to figure out which edge is the leftmost edge
+        # This can be done by comparing their negative inverse slopes. Whichever one is negative - i.e. the actual slope
+        # of the edge is positive - that edge is the leftmost edge.
+        if rowOne[3] < rowTwo[3]:
+            # Thus we order the table accordingly: The leftmost highest edge, the rightmost highest edge, and the lowest
+            # edge
+            table.append(rowOne)
+            table.append(rowTwo)
+        else:
+            table.append(rowTwo)
+            table.append(rowOne)
+
         table.append(rowThree)
 
-        if rowOne[0] >= rowTwo[0]:
-            table.extend((rowOne, rowTwo))
+    if rowTwo[0] == rowThree[0]:
+        if rowTwo[3] < rowThree[3]:
+            table.append(rowTwo)
+            table.append(rowThree)
         else:
-            table.extend((rowTwo, rowOne))
+            table.append(rowThree)
+            table.append(rowTwo)
 
+        table.append(rowOne)
+
+    else:
+        if rowOne[3] < rowThree[3]:
+            table.append(rowOne)
+            table.append(rowThree)
+        else:
+            table.append(rowThree)
+            table.append(rowOne)
+
+        table.append(rowTwo)
+
+    # Finally, we return the ordered table
     return table
-
-
-def createRow(edge):
-    x0 = edge[0][0]
-    y0 = edge[0][1]
-    x1 = edge[1][0]
-    y1 = edge[1][1]
-
-    if y0 > y1:
-        ymax = y0
-        ymin = y1
-    else:
-        ymax = y1
-        ymin = y0
-
-    if y1-y0 == 0:
-        dx = 0
-    else:
-        dx = -((x1-x0)/(y1-y0))
-
-    initialx = x1 + (dx / 2)
-
-    return [ymax, ymin, dx, initialx]
-
-
-def scan(table, frontface):
-    if frontface is True:
-        for i in range(len(table)-1):
-            edgeOne = table[i]
-            edgeTwo = table[i+1]
-
-            x1 = edgeOne[3]
-            x2 = edgeTwo[3]
-            dx1 = edgeOne[2]
-            dx2 = edgeTwo[2]
-            ymax = edgeOne[0]
-
-            if x1 < x2:
-                pointer = [x1, ymax]
-                endpointer = [x2, ymax]
-            else:
-                pointer = [x2, ymax]
-                endpointer = [x1, ymax]
-
-            if edgeOne[1] > edgeTwo[1]:
-                ymin = edgeOne[1]
-            else:
-                ymin = edgeTwo[1]
-
-            for i in range(math.trunc(ymax), math.trunc(ymin), -1):
-                for j in range(math.trunc(x1), math.trunc(x2), 1):
-                    w.create_line(pointer[0], pointer[1], endpointer[0], endpointer[1], fill="blue")
-                    pointer[0] = j
-
-                x1 += dx1
-                x2 += dx2
-
-                if x1 < x2:
-                    pointer = [x1, i]
-                    endpointer = [x2, i]
-                else:
-                    pointer = [x2, i]
-                    endpointer = [x1, i]
-
-
 
 
 # ***************************** Interface Functions ***************************
