@@ -419,10 +419,15 @@ def drawObject(object):
 # This function will draw a polygon by repeatedly calling drawLine on each pair of points
 # making up the object.  Remember to draw a line between the last point and the first.
 def drawPoly(poly, selected):
-    # Iterate through the vertices of each polygon and pass each pair to the drawLine function
-    # Also pass the polygon itself so that it can be used in the backface culling function
-    for i in range(len(poly)):
-        drawLine(poly[i - 1], poly[i], selected, poly)
+    # First we need to cull the backfaces of the object. This is done by running each polygon through the backface
+    # culling function and determining whether or not the polygon is facing the camera
+    frontface = backfaceCulling(poly)
+    # If frontface is true, then we display that polygon. This is done by iterating through the vertices of the polygon
+    # and passing each pair to the drawLine function
+    if frontface:
+        scan(poly)
+        for i in range(len(poly)):
+            drawLine(poly[i - 1], poly[i], selected)
 
     print("drawPoly stub executed.")
 
@@ -430,7 +435,7 @@ def drawPoly(poly, selected):
 # Project the 3D endpoints to 2D point using a perspective projection implemented in 'project'
 # Convert the projected endpoints to display coordinates via a call to 'convertToDisplayCoordinates'
 # draw the actual line using the built-in create_line method
-def drawLine(start, end, selected, poly):
+def drawLine(start, end, selected):
     # First convert the given start and end points to their perspective projection
     startproject = project(start)
     endproject = project(end)
@@ -439,20 +444,13 @@ def drawLine(start, end, selected, poly):
     startdisplay = convertToDisplayCoordinates(startproject)
     enddisplay = convertToDisplayCoordinates(endproject)
 
-    # Then run one of the perspective points and the polygon through the backface culling method, which should return a
-    # boolean
-    frontface = backfaceCulling(poly, startproject)
-
-    # If the face is supposed to be shown, draw the line. Otherwise, do nothing
-    if frontface:
-        # If the object is selected, draw the lines in red. Otherwise, draw them in black
-        if selected is True:
-            scan(poly)
-            # Draw the line with the new canvas-centered points, but in red!
-            w.create_line(startdisplay[0], startdisplay[1], enddisplay[0], enddisplay[1], fill="red")
-        else:
-            # Draw the line with the new canvas-centered points
-            w.create_line(startdisplay[0], startdisplay[1], enddisplay[0], enddisplay[1])
+    # If the object is selected, draw the lines in red. Otherwise, draw them in black
+    if selected is True:
+        # Draw the line with the new canvas-centered points, but in red!
+        w.create_line(startdisplay[0], startdisplay[1], enddisplay[0], enddisplay[1], fill="red")
+    else:
+        # Draw the line with the new canvas-centered points
+        w.create_line(startdisplay[0], startdisplay[1], enddisplay[0], enddisplay[1])
 
     print("drawLine stub executed.")
 
@@ -485,7 +483,7 @@ def convertToDisplayCoordinates(point):
 
 
 # This function is removes the back faces of an object that are pointing away from the camera.
-def backfaceCulling(poly, q):
+def backfaceCulling(poly):
     # q is the perspective projected point that is on the polygon named "poly"
 
     # First we grab the global boolean WIREFRAME to see if we even need to cull
@@ -506,7 +504,10 @@ def backfaceCulling(poly, q):
     B = -((p1[0] - p0[0]) * (p2[2] - p0[2]) - (p2[0] - p0[0]) * (p1[2] - p0[2]))
     C = ((p1[0] - p0[0]) * (p2[1] - p0[1]) - (p2[0] - p0[0]) * (p1[1] - p0[1]))
 
-    # Lastly, we compute the plane offset as the dot product of the surface normal and the perspective point on the
+    # Let's create a point q which is the perspective projected version of the point p0
+    q = project(p0)
+
+    # Lastly, we compute the plane offset as the dot product of the surface normal and the perspective point, q,  on the
     # polygon
     offset = q[0] * A + q[1] * B + q[2] * C
 
@@ -517,38 +518,38 @@ def backfaceCulling(poly, q):
 
 def scan(poly):
     table = createTable(poly)
-    pointer = [table[0][3], table[0][0]]
+    pointer = [table[0][2], table[0][0]]
 
-    while pointer[1] >= table[0][1] and pointer[1] >= table[1][1]:
-        while pointer[0] < table[1][2]:
+    while pointer[1] > table[0][1] and pointer[1] > table[1][1]:
+        while pointer[0] <= table[1][2]:
             w.create_oval(pointer[0], pointer[1], pointer[0], pointer[1], fill="black")
-            pointer[0] += 1
+            pointer[0] += 5
+
         table[0][2] += table[0][3]
         table[1][2] += table[1][3]
         pointer[0] = table[0][2]
         pointer[1] -= 1
 
 
-    if table[0][1] > table[1][1]:
+    if table[0][1] >= table[1][1]:
         del table[0]
     else:
         del table[1]
 
-    if table[0][2] < table[1][2]:
-        temp = list(table[0])
-        table[0] = list(table[1])
-        table[1] = list(temp)
+    if table[0][2] > table[1][2]:
+        table[0], table[1] = table[1], table[0]
+
+    pointer = [table[0][2], table[0][0]]
 
     while pointer[1] > table[0][1] and pointer[1] > table[1][1]:
-        while pointer[0] < table[1][2]-1:
+        while pointer[0] < table[1][2]:
             w.create_oval(pointer[0], pointer[1], pointer[0], pointer[1], fill="blue")
-            pointer[0] += 1
+            pointer[0] += 10
+            
         table[0][2] += table[0][3]
         table[1][2] += table[1][3]
         pointer[0] = table[0][2]
         pointer[1] -= 1
-
-
 
 
 
@@ -556,7 +557,7 @@ def scan(poly):
 # contains the edge's ymax, ymin, initial x, and negative inverse slope. All of this is used in computing the polygon
 # fill of a face of the object
 def createTable(poly):
-    # First we create an empty list of the vertices in the polygon and we intialize the table
+    # First we create an empty list of the vertices in the polygon and we initialize the table
     vertices = []
     table = []
 
@@ -564,7 +565,7 @@ def createTable(poly):
     for i in range(len(poly)):
         vertices.append(convertToDisplayCoordinates(project(poly[i])))
 
-    # Out of the new vertices, we create 3 edges, which corrsepond to the ones initialized in the polygon in the
+    # Out of the new vertices, we create 3 edges, which correspond to the ones initialized in the polygon in the
     # object's class
     edgeList = [[vertices[0], vertices[1]], [vertices[1], vertices[2]], [vertices[2], vertices[0]]]
 
@@ -574,11 +575,21 @@ def createTable(poly):
         # First we grab an edge and check to see which of the two points has the higher y value
         edge = edgeList[i]
 
-        if edge[0][1] > edge[1][1]:
+        if edge[0][1] >= edge[1][1]:
             # From there, we set the maximum y value of the edge accordingly, with the other y value automatically being
             # the minimum
             ymax = edge[0][1]
             ymin = edge[1][1]
+            """
+            if ymax == ymin:
+                if edge[0][0] < edge[1][0]:
+                    x1 = edge[0][0]
+                    x2 = edge[1][0]
+                else:
+                    x2 = edge[0][0]
+                    x1 = edge[1][0]
+                    """
+
             # The initial x1 value of the edge corresponds to the point with the highest y value. The other x2 value is
             # just used later the slope calculation
             x1 = edge[0][0]
@@ -586,14 +597,23 @@ def createTable(poly):
         else:
             ymin = edge[0][1]
             ymax = edge[1][1]
+            """
+            if ymax == ymin:
+                if edge[0][0] < edge[1][0]:
+                    x1 = edge[0][0]
+                    x2 = edge[1][0]
+                else:
+                    x2 = edge[0][0]
+                    x1 = edge[1][0]
+                    """
             x2 = edge[0][0]
             x1 = edge[1][0]
 
-        # If the edge is a vertical line, then we need to set the negative inverse slope to 0
-        if ymax - ymin != 0:
-            dx = -((x1 - x2) / (ymax - ymin))
-        else:
+        # If the edge is a horizontal line, then we need to set the negative inverse slope to 0
+        if ymax == ymin:
             dx = 0
+        else:
+            dx = -((x1 - x2) / (ymax - ymin))
 
         # Then we create the rows based on which edge is being evaluated
         if i == 0:
@@ -603,10 +623,36 @@ def createTable(poly):
         else:
             rowThree = [ymax, ymin, x1, dx]
 
+
+    if rowOne[0] == rowTwo[0] == rowThree[0]:
+        if rowOne[2] < rowTwo[2] and rowTwo[3] < rowThree[3]:
+            table.append(rowThree)
+            table.append(rowOne)
+            table.append(rowTwo)
+        elif rowOne[2] < rowTwo[2] and rowThree[3] < rowTwo[3]:
+            table.append(rowTwo)
+            table.append(rowOne)
+            table.append(rowThree)
+        elif rowTwo[2] < rowOne[2] and rowOne[3] < rowThree[3]:
+            table.append(rowThree)
+            table.append(rowTwo)
+            table.append(rowOne)
+        elif rowTwo[2] < rowOne[2] and rowThree[3] < rowOne[3]:
+            table.append(rowOne)
+            table.append(rowTwo)
+            table.append(rowThree)
+        elif rowThree[2] < rowOne[2] and rowOne[3] < rowTwo[3]:
+            table.append(rowTwo)
+            table.append(rowThree)
+            table.append(rowOne)
+        else:
+            table.append(rowOne)
+            table.append(rowThree)
+            table.append(rowTwo)
     # Once we're done creating the rows, we need to order the edges in the table by their ymax and then their "slope"
     # This is done be checking which two edges share the same ymax - since this would imply those two edges have the
     # shared highest of the three
-    if rowOne[0] == rowTwo[0]:
+    elif rowOne[0] == rowTwo[0]:
         # Once we determine which two edges have the shared ymax, we need to figure out which edge is the leftmost edge
         # This can be done by comparing their negative inverse slopes. Whichever one is negative - i.e. the actual slope
         # of the edge is positive - that edge is the leftmost edge.
@@ -621,7 +667,7 @@ def createTable(poly):
 
         table.append(rowThree)
 
-    if rowTwo[0] == rowThree[0]:
+    elif rowTwo[0] == rowThree[0]:
         if rowTwo[3] < rowThree[3]:
             table.append(rowTwo)
             table.append(rowThree)
