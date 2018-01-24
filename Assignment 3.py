@@ -19,6 +19,7 @@ CanvasWidth = 550
 CanvasHeight = 550
 d = 500
 WIREFRAME = False
+FILLSETTING = 0
 
 # ***************************** Initialize Object Classes ***************************
 class Pyramid:
@@ -425,7 +426,8 @@ def drawPoly(poly, selected):
     # If frontface is true, then we display that polygon. This is done by iterating through the vertices of the polygon
     # and passing each pair to the drawLine function
     if frontface:
-        scan(poly)
+        if FILLSETTING >= 1:
+            scan(poly)
         for i in range(len(poly)):
             drawLine(poly[i - 1], poly[i], selected)
 
@@ -445,12 +447,13 @@ def drawLine(start, end, selected):
     enddisplay = convertToDisplayCoordinates(endproject)
 
     # If the object is selected, draw the lines in red. Otherwise, draw them in black
-    if selected is True:
-        # Draw the line with the new canvas-centered points, but in red!
-        w.create_line(startdisplay[0], startdisplay[1], enddisplay[0], enddisplay[1], fill="red")
-    else:
-        # Draw the line with the new canvas-centered points
-        w.create_line(startdisplay[0], startdisplay[1], enddisplay[0], enddisplay[1])
+    if FILLSETTING != 2:
+        if selected is True:
+            # Draw the line with the new canvas-centered points, but in red!
+            w.create_line(startdisplay[0], startdisplay[1], enddisplay[0], enddisplay[1], fill="red")
+        else:
+            # Draw the line with the new canvas-centered points
+            w.create_line(startdisplay[0], startdisplay[1], enddisplay[0], enddisplay[1])
 
     print("drawLine stub executed.")
 
@@ -521,9 +524,9 @@ def scan(poly):
     pointer = [table[0][2], table[0][0]]
 
     while pointer[1] > table[0][1] and pointer[1] > table[1][1]:
-        while pointer[0] <= table[1][2]:
+        while pointer[0] < table[1][2]:
             w.create_oval(pointer[0], pointer[1], pointer[0], pointer[1], fill="green", outline="green")
-            pointer[0] += 3
+            pointer[0] += 5
 
         table[0][2] += table[0][3]
         table[1][2] += table[1][3]
@@ -539,12 +542,11 @@ def scan(poly):
     if table[0][2] > table[1][2]:
         table[0], table[1] = table[1], table[0]
 
-    #pointer = [table[0][2], table[0][0]]
 
     while pointer[1] > table[0][1] and pointer[1] > table[1][1]:
         while pointer[0] < table[1][2]:
             w.create_oval(pointer[0], pointer[1], pointer[0], pointer[1], fill="blue", outline="blue")
-            pointer[0] += 3
+            pointer[0] += 1
             
         table[0][2] += table[0][3]
         table[1][2] += table[1][3]
@@ -580,15 +582,6 @@ def createTable(poly):
             # the minimum
             ymax = edge[0][1]
             ymin = edge[1][1]
-            """
-            if ymax == ymin:
-                if edge[0][0] < edge[1][0]:
-                    x1 = edge[0][0]
-                    x2 = edge[1][0]
-                else:
-                    x2 = edge[0][0]
-                    x1 = edge[1][0]
-                    """
 
             # The initial x1 value of the edge corresponds to the point with the highest y value. The other x2 value is
             # just used later the slope calculation
@@ -597,15 +590,7 @@ def createTable(poly):
         else:
             ymin = edge[0][1]
             ymax = edge[1][1]
-            """
-            if ymax == ymin:
-                if edge[0][0] < edge[1][0]:
-                    x1 = edge[0][0]
-                    x2 = edge[1][0]
-                else:
-                    x2 = edge[0][0]
-                    x1 = edge[1][0]
-                    """
+
             x2 = edge[0][0]
             x1 = edge[1][0]
 
@@ -623,35 +608,41 @@ def createTable(poly):
         else:
             rowThree = [ymax, ymin, x1, dx]
 
-
-    if rowOne[0] == rowTwo[0] == rowThree[0]:
-        if rowOne[2] < rowTwo[2] and rowTwo[3] < rowThree[3]:
-            table.append(rowThree)
-            table.append(rowOne)
-            table.append(rowTwo)
-        elif rowOne[2] < rowTwo[2] and rowThree[3] < rowTwo[3]:
-            table.append(rowTwo)
-            table.append(rowOne)
-            table.append(rowThree)
-        elif rowTwo[2] < rowOne[2] and rowOne[3] < rowThree[3]:
-            table.append(rowThree)
-            table.append(rowTwo)
-            table.append(rowOne)
-        elif rowTwo[2] < rowOne[2] and rowThree[3] < rowOne[3]:
-            table.append(rowOne)
-            table.append(rowTwo)
-            table.append(rowThree)
-        elif rowThree[2] < rowOne[2] and rowOne[3] < rowTwo[3]:
-            table.append(rowTwo)
-            table.append(rowThree)
-            table.append(rowOne)
-        else:
-            table.append(rowOne)
-            table.append(rowThree)
-            table.append(rowTwo)
     # Once we're done creating the rows, we need to order the edges in the table by their ymax and then their "slope"
     # This is done be checking which two edges share the same ymax - since this would imply those two edges have the
     # shared highest of the three
+
+    # If all three of them have the same max height, then the triangle is a upside down right triangle. So, we need to
+    # make sure that the horizontal edge is the first row, and the second row is the leftmost edge
+    if rowOne[0] == rowTwo[0] == rowThree[0]:
+        # We do this by checking to make sure that the first row we check has the greatest ymin. This row contains the
+        # horizontal edge. Then we check which of the other two rows has the smallest x initial. This row is the left-
+        # most edge. Then we order them accordingly
+        if rowOne[1] > rowTwo[1] and rowTwo[3] < rowThree[3]:
+            table.append(rowOne)
+            table.append(rowTwo)
+            table.append(rowThree)
+        elif rowOne[1] > rowTwo[1] and rowThree[3] < rowTwo[3]:
+            table.append(rowOne)
+            table.append(rowThree)
+            table.append(rowTwo)
+        elif rowTwo[1] > rowOne[1] and rowOne[3] < rowThree[3]:
+            table.append(rowTwo)
+            table.append(rowOne)
+            table.append(rowThree)
+        elif rowTwo[1] > rowOne[2] and rowThree[3] < rowOne[3]:
+            table.append(rowTwo)
+            table.append(rowThree)
+            table.append(rowOne)
+        elif rowThree[1] > rowOne[1] and rowOne[3] < rowTwo[3]:
+            table.append(rowThree)
+            table.append(rowOne)
+            table.append(rowTwo)
+        else:
+            table.append(rowThree)
+            table.append(rowTwo)
+            table.append(rowOne)
+
     elif rowOne[0] == rowTwo[0]:
         # Once we determine which two edges have the shared ymax, we need to figure out which edge is the leftmost edge
         # This can be done by comparing their negative inverse slopes. Whichever one is negative - i.e. the actual slope
@@ -817,7 +808,22 @@ def backfaceToggle():
     w.delete(ALL)
     WIREFRAME = not WIREFRAME
 
-    print("toggle stub executed.")
+    print("backfacetoggle stub executed.")
+
+    for i in range(len(currentObject)):
+        drawObject(currentObject[i])
+
+def changeFillSetting():
+    global FILLSETTING
+    w.delete(ALL)
+    if FILLSETTING == 0:
+        FILLSETTING = 1
+    elif FILLSETTING == 1:
+        FILLSETTING = 2
+    else:
+        FILLSETTING = 0
+
+    print("filltoggle stub executed")
 
     for i in range(len(currentObject)):
         drawObject(currentObject[i])
@@ -929,5 +935,14 @@ wireframecontrolslabel.pack()
 
 wireframeToggle = Checkbutton(wireframecontrols, text="Toggle", command=backfaceToggle)
 wireframeToggle.pack(side=LEFT)
+
+fillsettingcontrols = Frame(controlpanel, borderwidth=2, relief=RIDGE)
+fillsettingcontrols.pack(side=LEFT)
+
+fillsettingcontrolslabel = Label(fillsettingcontrols, text="Polygon Fill")
+fillsettingcontrolslabel.pack()
+
+fillsettingButton = Button(fillsettingcontrols, text="Setting is: %d" % FILLSETTING, command=changeFillSetting)
+fillsettingButton.pack(side=LEFT)
 
 root.mainloop()
