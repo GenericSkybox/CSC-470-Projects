@@ -426,7 +426,7 @@ def drawPoly(poly, selected):
     # If frontface is true, then we display that polygon. This is done by iterating through the vertices of the polygon
     # and passing each pair to the drawLine function
     if frontface:
-        if FILLSETTING >= 1:
+        if FILLSETTING >= 1 and WIREFRAME == False:
             scan(poly)
         for i in range(len(poly)):
             drawLine(poly[i - 1], poly[i], selected)
@@ -447,7 +447,7 @@ def drawLine(start, end, selected):
     enddisplay = convertToDisplayCoordinates(endproject)
 
     # If the object is selected, draw the lines in red. Otherwise, draw them in black
-    if FILLSETTING != 2:
+    if FILLSETTING != 2 or WIREFRAME is True:
         if selected is True:
             # Draw the line with the new canvas-centered points, but in red!
             w.create_line(startdisplay[0], startdisplay[1], enddisplay[0], enddisplay[1], fill="red")
@@ -539,7 +539,7 @@ def scan(poly):
                 if len(fillBlue) < 2:
                     temp = fillBlue
                     fillBlue = "0%s" % fillBlue
-                    
+
                 fillColor = "#0000%s" % fillBlue
             else:
                 fillColor = ""
