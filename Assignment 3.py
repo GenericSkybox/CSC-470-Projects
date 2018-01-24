@@ -417,6 +417,9 @@ def drawObject(object):
     print("drawObject stub executed.")
 
 
+
+
+
 # This function will draw a polygon by repeatedly calling drawLine on each pair of points
 # making up the object.  Remember to draw a line between the last point and the first.
 def drawPoly(poly, selected):
@@ -519,31 +522,54 @@ def backfaceCulling(poly):
     return (C * (-d) - offset) > 0
 
 
+# This function scans the polygon, line by line, and fills it with the appropriate color
 def scan(poly):
+    # To begin with, we need to create a table of the polygon's edges that's sorted by the edge's maximum y value
+    # The each row in the table is organized as: ymax, ymin, initial x, negative inverse slope
     table = createTable(poly)
+    # Once the sorted table is made, we set a pointer to the top of the polygon, which should be the initial x and the
+    # maximum y of the first edge in the table
     pointer = [table[0][2], table[0][0]]
 
+    # So long as the pointer is above the minimum value of y of the two edges that we are scanning between, we will
+    # continue to fill the polygon
     while pointer[1] > table[0][1] and pointer[1] > table[1][1]:
+        # For every line between two edges, we'll work the pointer from the left edge's initial x to the right edge's
         while pointer[0] < table[1][2]:
+            # Since we can't actually create pixels with tkinter, we'll just create minuscule ovals one point big
             w.create_oval(pointer[0], pointer[1], pointer[0], pointer[1], fill="green", outline="green")
-            pointer[0] += 5
+            # Afterwards, we increment the pointer along the x axis
+            pointer[0] += 1
 
+        # After a scanline is done for line on the polygon, we increment the initial x values of both edges by their
+        # negative inverse slopes
         table[0][2] += table[0][3]
         table[1][2] += table[1][3]
+        # We set the pointer equal to the leftmost edge's initial x and decrement the y value of pointer
         pointer[0] = table[0][2]
         pointer[1] -= 1
 
 
+    # Once the first two edges are done being filled, we check to see which edge's ymin we passed up while scanning
+    # Whichever one that is, we delete from the table
     if table[0][1] >= table[1][1]:
         del table[0]
     else:
         del table[1]
 
+    # Next we need to make sure that we're still scanning from the leftmost edge to the rightmost one. We may have
+    # switched sides along the way, which is denoted by the new first edge of the row having a greater x initial than
+    # the new second edge of the row
+    # If that's the case, we'll just swap 'em in the table
     if table[0][2] > table[1][2]:
         table[0], table[1] = table[1], table[0]
 
 
-    while pointer[1] > table[0][1] and pointer[1] > table[1][1]:
+    # Once we have our two "new" edges situated in the table, we can begin filling the polygon again, moving from left
+    # to right
+    # Since the ymin values of the last two edges should be the same, we just need to check if we passed one of them
+    # before we stop filling
+    while pointer[1] > table[0][1]:
         while pointer[0] < table[1][2]:
             w.create_oval(pointer[0], pointer[1], pointer[0], pointer[1], fill="blue", outline="blue")
             pointer[0] += 1
@@ -552,7 +578,6 @@ def scan(poly):
         table[1][2] += table[1][3]
         pointer[0] = table[0][2]
         pointer[1] -= 1
-
 
 
 # This function creates a table where each row represents the edge of the triangular polygon passed in. Each row
@@ -567,8 +592,7 @@ def createTable(poly):
     for i in range(len(poly)):
         vertices.append(convertToDisplayCoordinates(project(poly[i])))
 
-    # Out of the new vertices, we create 3 edges, which correspond to the ones initialized in the polygon in the
-    # object's class
+    # Out of the new vertices, we create 3 edges, which correspond to the ones initialized in the polygon passed in
     edgeList = [[vertices[0], vertices[1]], [vertices[1], vertices[2]], [vertices[2], vertices[0]]]
 
     # For each edge, we determine its ymax, ymin, initial x, and negative inverse slope before adding those values to
@@ -608,7 +632,7 @@ def createTable(poly):
         else:
             rowThree = [ymax, ymin, x1, dx]
 
-    # Once we're done creating the rows, we need to order the edges in the table by their ymax and then their "slope"
+    # Once we're done creating the rows, we need to order the edges in the table by their ymax and then their initial x
     # This is done be checking which two edges share the same ymax - since this would imply those two edges have the
     # shared highest of the three
 
@@ -644,9 +668,9 @@ def createTable(poly):
             table.append(rowOne)
 
     elif rowOne[0] == rowTwo[0]:
-        # Once we determine which two edges have the shared ymax, we need to figure out which edge is the leftmost edge
-        # This can be done by comparing their negative inverse slopes. Whichever one is negative - i.e. the actual slope
-        # of the edge is positive - that edge is the leftmost edge.
+        # In every other case, once we determine which two edges have the same ymax, we need to figure out which edge
+        # is the leftmost edge. This can be done by comparing their negative inverse slopes. Whichever one is negative -
+        # i.e. the actual slope of the edge is positive - that edge is the leftmost edge.
         if rowOne[3] < rowTwo[3]:
             # Thus we order the table accordingly: The leftmost highest edge, the rightmost highest edge, and the lowest
             # edge
@@ -827,7 +851,6 @@ def changeFillSetting():
 
     for i in range(len(currentObject)):
         drawObject(currentObject[i])
-
 
 
 # ***************************** Interface and Window Construction ***************************
