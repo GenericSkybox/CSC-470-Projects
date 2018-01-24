@@ -15,8 +15,8 @@ import math
 from operator import add
 from tkinter import *
 
-CanvasWidth = 550
-CanvasHeight = 550
+CanvasWidth = 650
+CanvasHeight = 600
 d = 500
 WIREFRAME = False
 FILLSETTING = 1
@@ -533,8 +533,18 @@ def scan(poly):
     while pointer[1] > table[0][1] and pointer[1] > table[1][1]:
         # For every line between two edges, we'll work the pointer from the left edge's initial x to the right edge's
         while pointer[0] < table[1][2]:
-            # Since we can't actually create pixels with tkinter, we'll just create minuscule ovals one point big
-            w.create_oval(pointer[0], pointer[1], pointer[0], pointer[1], fill="green", outline="green")
+            if pointer[0] < CanvasWidth and pointer[0] > 0:
+                fillBlue = hex(round(pointer[0] * (255 / CanvasWidth))).split('x')[-1]
+
+                if len(fillBlue) < 2:
+                    temp = fillBlue
+                    fillBlue = "0%s" % fillBlue
+                    
+                fillColor = "#0000%s" % fillBlue
+            else:
+                fillColor = ""
+
+            w.create_oval(pointer[0], pointer[1], pointer[0], pointer[1], fill="", outline=fillColor)
             # Afterwards, we increment the pointer along the x axis
             pointer[0] += 1
 
@@ -566,7 +576,18 @@ def scan(poly):
     # before we stop filling
     while pointer[1] > table[0][1]:
         while pointer[0] < table[1][2]:
-            w.create_oval(pointer[0], pointer[1], pointer[0], pointer[1], fill="blue", outline="blue")
+            if pointer[0] < CanvasWidth and pointer[0] > 0:
+                fillBlue = hex(round(pointer[0] * (255 / CanvasWidth))).split('x')[-1]
+
+                if len(fillBlue) < 2:
+                    temp = fillBlue
+                    fillBlue = "0%s" % fillBlue
+
+                fillColor = "#0000%s" % fillBlue
+            else:
+                fillColor = ""
+
+            w.create_oval(pointer[0], pointer[1], pointer[0], pointer[1], fill="", outline=fillColor)
             pointer[0] += 1
             
         table[0][2] += table[0][3]
@@ -599,22 +620,23 @@ def createTable(poly):
         if edge[0][1] >= edge[1][1]:
             # From there, we set the maximum y value of the edge accordingly, with the other y value automatically being
             # the minimum
-            ymax = edge[0][1]
-            ymin = edge[1][1]
+            # We truncate the values so that our negative inverse slope function doesn't give us a stupidly high number
+            ymax = math.trunc(edge[0][1])
+            ymin = math.trunc(edge[1][1])
 
             # The initial x1 value of the edge corresponds to the point with the highest y value. The other x2 value is
             # just used later the slope calculation
-            x1 = edge[0][0]
-            x2 = edge[1][0]
+            x1 = math.trunc(edge[0][0])
+            x2 = math.trunc(edge[1][0])
         else:
-            ymin = edge[0][1]
-            ymax = edge[1][1]
+            ymin = math.trunc(edge[0][1])
+            ymax = math.trunc(edge[1][1])
 
-            x2 = edge[0][0]
-            x1 = edge[1][0]
+            x2 = math.trunc(edge[0][0])
+            x1 = math.trunc(edge[1][0])
 
         # If the edge is a horizontal line, then we need to set the negative inverse slope to 0
-        if ymax == ymin:
+        if ymax - ymin == 0:
             dx = 0
         else:
             dx = -((x1 - x2) / (ymax - ymin))
@@ -699,6 +721,10 @@ def createTable(poly):
 
     # Finally, we return the ordered table
     return table
+
+
+def zBuffer():
+    return None
 
 
 # ***************************** Interface Functions ***************************
