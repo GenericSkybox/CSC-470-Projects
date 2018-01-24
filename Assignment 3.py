@@ -19,7 +19,7 @@ CanvasWidth = 550
 CanvasHeight = 550
 d = 500
 WIREFRAME = False
-FILLSETTING = 0
+FILLSETTING = 1
 
 # ***************************** Initialize Object Classes ***************************
 class Pyramid:
@@ -202,7 +202,7 @@ customPyramid = Pyramid(100, 150, [200, 0, 100])
 
 
 # This is the main list of objects referenced later to be drawn
-currentObject = [customCube1, customPyramid, customCube2]
+currentObject = [customCube1]
 # This is the iterator to keep track of which object is selected
 objectNumber = 0
 
@@ -403,7 +403,7 @@ def selectPrevObject():
 
 
 # This function will draw an object by repeatedly calling drawPoly on each polygon in the object
-def drawObject(object):
+def drawAllObjects(object):
     # Check to see if the passed in object is selected, then pass that to the drawPoly function
     if object.selected:
         focused = True
@@ -415,9 +415,6 @@ def drawObject(object):
         drawPoly(object.shape[i], focused)
 
     print("drawObject stub executed.")
-
-
-
 
 
 # This function will draw a polygon by repeatedly calling drawLine on each pair of points
@@ -549,7 +546,6 @@ def scan(poly):
         pointer[0] = table[0][2]
         pointer[1] -= 1
 
-
     # Once the first two edges are done being filled, we check to see which edge's ymin we passed up while scanning
     # Whichever one that is, we delete from the table
     if table[0][1] >= table[1][1]:
@@ -563,7 +559,6 @@ def scan(poly):
     # If that's the case, we'll just swap 'em in the table
     if table[0][2] > table[1][2]:
         table[0], table[1] = table[1], table[0]
-
 
     # Once we have our two "new" edges situated in the table, we can begin filling the polygon again, moving from left
     # to right
@@ -712,119 +707,119 @@ def reset():
     w.delete(ALL)
     resetPyramid(currentObject[objectNumber])
     for i in range(len(currentObject)):
-        drawObject(currentObject[i])
+        drawAllObjects(currentObject[i])
 
 
 def larger():
     w.delete(ALL)
     scale(currentObject[objectNumber].pointcloud, 1.1)
     for i in range(len(currentObject)):
-        drawObject(currentObject[i])
+        drawAllObjects(currentObject[i])
 
 
 def smaller():
     w.delete(ALL)
     scale(currentObject[objectNumber].pointcloud, .9)
     for i in range(len(currentObject)):
-        drawObject(currentObject[i])
+        drawAllObjects(currentObject[i])
 
 
 def forward():
     w.delete(ALL)
     translate(currentObject[objectNumber].pointcloud, [0, 0, 5])
     for i in range(len(currentObject)):
-        drawObject(currentObject[i])
+        drawAllObjects(currentObject[i])
 
 
 def backward():
     w.delete(ALL)
     translate(currentObject[objectNumber].pointcloud, [0, 0, -5])
     for i in range(len(currentObject)):
-        drawObject(currentObject[i])
+        drawAllObjects(currentObject[i])
 
 
 def left():
     w.delete(ALL)
     translate(currentObject[objectNumber].pointcloud, [-5, 0, 0])
     for i in range(len(currentObject)):
-        drawObject(currentObject[i])
+        drawAllObjects(currentObject[i])
 
 
 def right():
     w.delete(ALL)
     translate(currentObject[objectNumber].pointcloud, [5, 0, 0])
     for i in range(len(currentObject)):
-        drawObject(currentObject[i])
+        drawAllObjects(currentObject[i])
 
 
 def up():
     w.delete(ALL)
     translate(currentObject[objectNumber].pointcloud, [0, 5, 0])
     for i in range(len(currentObject)):
-        drawObject(currentObject[i])
+        drawAllObjects(currentObject[i])
 
 
 def down():
     w.delete(ALL)
     translate(currentObject[objectNumber].pointcloud, [0, -5, 0])
     for i in range(len(currentObject)):
-        drawObject(currentObject[i])
+        drawAllObjects(currentObject[i])
 
 
 def xPlus():
     w.delete(ALL)
     rotateX(currentObject[objectNumber].pointcloud, 5)
     for i in range(len(currentObject)):
-        drawObject(currentObject[i])
+        drawAllObjects(currentObject[i])
 
 
 def xMinus():
     w.delete(ALL)
     rotateX(currentObject[objectNumber].pointcloud, -5)
     for i in range(len(currentObject)):
-        drawObject(currentObject[i])
+        drawAllObjects(currentObject[i])
 
 
 def yPlus():
     w.delete(ALL)
     rotateY(currentObject[objectNumber].pointcloud, 5)
     for i in range(len(currentObject)):
-        drawObject(currentObject[i])
+        drawAllObjects(currentObject[i])
 
 
 def yMinus():
     w.delete(ALL)
     rotateY(currentObject[objectNumber].pointcloud, -5)
     for i in range(len(currentObject)):
-        drawObject(currentObject[i])
+        drawAllObjects(currentObject[i])
 
 
 def zPlus():
     w.delete(ALL)
     rotateZ(currentObject[objectNumber].pointcloud, 5)
     for i in range(len(currentObject)):
-        drawObject(currentObject[i])
+        drawAllObjects(currentObject[i])
 
 
 def zMinus():
     w.delete(ALL)
     rotateZ(currentObject[objectNumber].pointcloud, -5)
     for i in range(len(currentObject)):
-        drawObject(currentObject[i])
+        drawAllObjects(currentObject[i])
 
 
 def nextSelection():
     w.delete(ALL)
     selectNextObject()
     for i in range(len(currentObject)):
-        drawObject(currentObject[i])
+        drawAllObjects(currentObject[i])
 
 
 def prevSelection():
     w.delete(ALL)
     selectPrevObject()
     for i in range(len(currentObject)):
-        drawObject(currentObject[i])
+        drawAllObjects(currentObject[i])
 
 
 def backfaceToggle():
@@ -835,7 +830,7 @@ def backfaceToggle():
     print("backfacetoggle stub executed.")
 
     for i in range(len(currentObject)):
-        drawObject(currentObject[i])
+        drawAllObjects(currentObject[i])
 
 def changeFillSetting():
     global FILLSETTING
@@ -847,10 +842,12 @@ def changeFillSetting():
     else:
         FILLSETTING = 0
 
+    fill_button_text.set("Setting is: %d" % FILLSETTING)
+
     print("filltoggle stub executed")
 
     for i in range(len(currentObject)):
-        drawObject(currentObject[i])
+        drawAllObjects(currentObject[i])
 
 
 # ***************************** Interface and Window Construction ***************************
@@ -863,7 +860,9 @@ w = Canvas(outerframe, width=CanvasWidth, height=CanvasHeight)
 currentObject[0].selected = True
 # Then we iterate through the list of objects and create them
 for i in range(len(currentObject)):
-    drawObject(currentObject[i])
+    drawAllObjects(currentObject[i])
+fill_button_text = StringVar()
+fill_button_text.set("Setting is: %d" % FILLSETTING)
 w.pack()
 
 controlpanel = Frame(outerframe)
@@ -965,7 +964,7 @@ fillsettingcontrols.pack(side=LEFT)
 fillsettingcontrolslabel = Label(fillsettingcontrols, text="Polygon Fill")
 fillsettingcontrolslabel.pack()
 
-fillsettingButton = Button(fillsettingcontrols, text="Setting is: %d" % FILLSETTING, command=changeFillSetting)
+fillsettingButton = Button(fillsettingcontrols, textvariable=fill_button_text, command=changeFillSetting)
 fillsettingButton.pack(side=LEFT)
 
 root.mainloop()
