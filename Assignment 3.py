@@ -20,6 +20,8 @@ CanvasHeight = 600
 d = 500
 WIREFRAME = False
 FILLSETTING = 1
+ZBUFFER = []
+MAXDEPTH = 1000
 
 # ***************************** Initialize Object Classes ***************************
 class Pyramid:
@@ -410,6 +412,10 @@ def drawAllObjects(object):
     else:
         focused = False
 
+    # Create the zbuffer
+    global ZBUFFER
+    ZBUFFER = [[MAXDEPTH for j in range(CanvasWidth)] for i in range(CanvasHeight)]
+
     # Iterate through the polygons of the object and pass it to drawPoly
     for i in range(len(object.shape)):
         drawPoly(object.shape[i], focused)
@@ -533,18 +539,30 @@ def scan(poly):
     while pointer[1] > table[0][1] and pointer[1] > table[1][1]:
         # For every line between two edges, we'll work the pointer from the left edge's initial x to the right edge's
         while pointer[0] < table[1][2]:
-            if pointer[0] < CanvasWidth and pointer[0] > 0:
+            pz = 0
+            # First we check to see if the point is on-screen
+            if pointer[0] < CanvasWidth and pointer[0] > 0 and pz < ZBUFFER[math.trunc(pointer[0])][pointer[1]]:
+                ZBUFFER[math.trunc(pointer[0])][pointer[1]] = pz
+                # The farther along X the pointer is, the brighter blue it becomes - this equation figures out the
+                # hexadecimal color of the point based on where the point is and its relation to the CanvasWidth
+                # We also split the "0x" part of it so we can concatenate the string easily to the rest of the fill
+                # color later
                 fillBlue = hex(round(pointer[0] * (255 / CanvasWidth))).split('x')[-1]
 
+                # If somehow we get a single digit value for the hexademical, we just add a zero to the front of it
                 if len(fillBlue) < 2:
-                    temp = fillBlue
                     fillBlue = "0%s" % fillBlue
 
+                # Lastly, we make the actual fill color to be 0000 plus whatever the range of blue we have
                 fillColor = "#0000%s" % fillBlue
+            # If the pointer is off the screen, then we change the fill color to be "", which is basically null. This
+            # will prevent the program from crashing and also minorly help boost performance
             else:
                 fillColor = ""
 
-            w.create_oval(pointer[0], pointer[1], pointer[0], pointer[1], fill="", outline=fillColor)
+            # Now that we have our fill color, we make the point we draw have the outline of that fill color and not
+            # bother filling in the actual rectangle since the points are small enough that it doesn't matter
+            w.create_rectangle(pointer[0], pointer[1], pointer[0], pointer[1], fill="", outline=fillColor)
             # Afterwards, we increment the pointer along the x axis
             pointer[0] += 1
 
@@ -576,18 +594,18 @@ def scan(poly):
     # before we stop filling
     while pointer[1] > table[0][1]:
         while pointer[0] < table[1][2]:
-            if pointer[0] < CanvasWidth and pointer[0] > 0:
+            pz = 0
+            if pointer[0] < CanvasWidth and pointer[0] > 0 and pz < ZBUFFER[math.trunc(pointer[0])][pointer[1]]:
                 fillBlue = hex(round(pointer[0] * (255 / CanvasWidth))).split('x')[-1]
 
                 if len(fillBlue) < 2:
-                    temp = fillBlue
                     fillBlue = "0%s" % fillBlue
 
                 fillColor = "#0000%s" % fillBlue
             else:
                 fillColor = ""
 
-            w.create_oval(pointer[0], pointer[1], pointer[0], pointer[1], fill="", outline=fillColor)
+            w.create_rectangle(pointer[0], pointer[1], pointer[0], pointer[1], fill="", outline=fillColor)
             pointer[0] += 1
             
         table[0][2] += table[0][3]
@@ -723,7 +741,7 @@ def createTable(poly):
     return table
 
 
-def zBuffer():
+def pointerDepth():
     return None
 
 
