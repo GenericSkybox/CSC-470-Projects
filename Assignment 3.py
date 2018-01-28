@@ -196,15 +196,16 @@ class Box:
 # ***************************** Create the Objects ***************************
 
 # Create a box in the middle of the frame
-customCube1 = Box()
+customCube1 = Box(50, 50, 50, [0,0,0])
 # Create a box offset by -200 in x and 100 in z, and make it longer
 customCube2 = Box(100, 50, 50, [-200, 0, 100])
 # Create a pyramid that is taller than it is wide, 200 in x and 100 in z
 customPyramid = Pyramid(100, 150, [200, 0, 100])
+customBigCube = Box(100, 100, 100,[0, 0, 0])
 
 
 # This is the main list of objects referenced later to be drawn
-currentObject = [customCube1]
+currentObject = [customCube1, customBigCube]
 # This is the iterator to keep track of which object is selected
 objectNumber = 0
 
@@ -404,17 +405,20 @@ def selectPrevObject():
     print("prevSelection stub executed.")
 
 
+def drawAllObjects():
+    global ZBUFFER
+    ZBUFFER = [[MAXDEPTH for j in range(CanvasHeight)] for i in range(CanvasWidth)]
+    for i in range(len(currentObject)):
+        drawCurrentObject(currentObject[i])
+
+
 # This function will draw an object by repeatedly calling drawPoly on each polygon in the object
-def drawAllObjects(object):
+def drawCurrentObject(object):
     # Check to see if the passed in object is selected, then pass that to the drawPoly function
     if object.selected:
         focused = True
     else:
         focused = False
-
-    # Create the zbuffer
-    global ZBUFFER
-    ZBUFFER = [[MAXDEPTH for j in range(CanvasWidth)] for i in range(CanvasHeight)]
 
     # Iterate through the polygons of the object and pass it to drawPoly
     for i in range(len(object.shape)):
@@ -433,7 +437,7 @@ def drawPoly(poly, selected):
     # and passing each pair to the drawLine function
     if frontface:
         if FILLSETTING >= 1 and WIREFRAME == False:
-            scan(poly)
+            scan(poly, selected)
         for i in range(len(poly)):
             drawLine(poly[i - 1], poly[i], selected)
 
@@ -526,7 +530,7 @@ def backfaceCulling(poly):
 
 
 # This function scans the polygon, line by line, and fills it with the appropriate color
-def scan(poly):
+def scan(poly, selected):
     # To begin with, we need to create a table of the polygon's edges that's sorted by the edge's maximum y value
     # The each row in the table is organized as: ymax, ymin, initial x, negative inverse slope
     table = createTable(poly)
@@ -537,13 +541,25 @@ def scan(poly):
     # So long as the pointer is above the minimum value of y of the two edges that we are scanning between, we will
     # continue to fill the polygon
     while pointer[1] > table[0][1] and pointer[1] > table[1][1]:
+        zHorLeft = table[0][4] + table[0][5]
+        zHorRight = table[1][4] + table[1][5]
+
+        if math.trunc(table[0][2]-table[1][2]) == 0:
+            zVertConst = 0
+        else:
+            zVertConst = (zHorRight - zHorLeft)/(math.trunc(table[0][2]-table[1][2]))
+
+        zVert = zHorLeft
+
         # For every line between two edges, we'll work the pointer from the left edge's initial x to the right edge's
         while pointer[0] < table[1][2]:
-            pz = 0
+            pz = zVert + zVertConst
+
             # First we check to see if the point is on-screen
-            if pointer[0] < CanvasWidth and pointer[0] > 0 and pz < ZBUFFER[math.trunc(pointer[0])][pointer[1]]:
+            if 0 < pointer[0] < CanvasWidth and 0 < pointer[1] < CanvasHeight and \
+                            pz <= ZBUFFER[math.trunc(pointer[0])][pointer[1]]:
                 ZBUFFER[math.trunc(pointer[0])][pointer[1]] = pz
-                # The farther along X the pointer is, the brighter blue it becomes - this equation figures out the
+                # The farther along X the pointer is, the more white it becomes - this equation figures out the
                 # hexadecimal color of the point based on where the point is and its relation to the CanvasWidth
                 # We also split the "0x" part of it so we can concatenate the string easily to the rest of the fill
                 # color later
@@ -554,7 +570,10 @@ def scan(poly):
                     fillBlue = "0%s" % fillBlue
 
                 # Lastly, we make the actual fill color to be 0000 plus whatever the range of blue we have
-                fillColor = "#0000%s" % fillBlue
+                fillColor = "#FFFF%s" % fillBlue
+
+                if selected:
+                    fillColor = "#0000FF"
             # If the pointer is off the screen, then we change the fill color to be "", which is basically null. This
             # will prevent the program from crashing and also minorly help boost performance
             else:
@@ -563,9 +582,12 @@ def scan(poly):
             # Now that we have our fill color, we make the point we draw have the outline of that fill color and not
             # bother filling in the actual rectangle since the points are small enough that it doesn't matter
             w.create_rectangle(pointer[0], pointer[1], pointer[0], pointer[1], fill="", outline=fillColor)
+            zVert = pz
             # Afterwards, we increment the pointer along the x axis
             pointer[0] += 1
 
+        table[0][4] = zHorLeft
+        table[1][4] = zHorRight
         # After a scanline is done for line on the polygon, we increment the initial x values of both edges by their
         # negative inverse slopes
         table[0][2] += table[0][3]
@@ -592,22 +614,44 @@ def scan(poly):
     # to right
     # Since the ymin values of the last two edges should be the same, we just need to check if we passed one of them
     # before we stop filling
-    while pointer[1] > table[0][1]:
+    while pointer[1] > table[0][1] and pointer[1] > table[1][1]:
+        zHorLeft = table[0][4] + table[0][5]
+        zHorRight = table[1][4] + table[1][5]
+
+        if math.trunc(table[0][2]-table[1][2]) == 0:
+            zVertConst = 0
+        else:
+            zVertConst = (zHorRight - zHorLeft)/(math.trunc(table[0][2]-table[1][2]))
+
+        zVert = zHorLeft
+
         while pointer[0] < table[1][2]:
-            pz = 0
-            if pointer[0] < CanvasWidth and pointer[0] > 0 and pz < ZBUFFER[math.trunc(pointer[0])][pointer[1]]:
+            pz = zVert + zVertConst
+            if pz < -0.12:
+                print(zVert)
+
+            if 0 < pointer[0] < CanvasWidth and 0 < pointer[1] < CanvasHeight and \
+                            pz <= ZBUFFER[math.trunc(pointer[0])][pointer[1]]:
+                ZBUFFER[math.trunc(pointer[0])][pointer[1]] = pz
                 fillBlue = hex(round(pointer[0] * (255 / CanvasWidth))).split('x')[-1]
 
                 if len(fillBlue) < 2:
                     fillBlue = "0%s" % fillBlue
 
-                fillColor = "#0000%s" % fillBlue
+                fillColor = "#FFFF%s" % fillBlue
+
+                if selected:
+                    fillColor = "#000000"
             else:
                 fillColor = ""
 
             w.create_rectangle(pointer[0], pointer[1], pointer[0], pointer[1], fill="", outline=fillColor)
+
+            zVert = pz
             pointer[0] += 1
-            
+
+        table[0][4] = zHorLeft
+        table[1][4] = zHorRight
         table[0][2] += table[0][3]
         table[1][2] += table[1][3]
         pointer[0] = table[0][2]
@@ -615,8 +659,8 @@ def scan(poly):
 
 
 # This function creates a table where each row represents the edge of the triangular polygon passed in. Each row
-# contains the edge's ymax, ymin, initial x, and negative inverse slope. All of this is used in computing the polygon
-# fill of a face of the object
+# contains the edge's ymax, ymin, initial x, negative inverse slope, z, and dz. All of this is used in computing the
+# polygon fill and zbuffer of a face of the object
 def createTable(poly):
     # First we create an empty list of the vertices in the polygon and we initialize the table
     vertices = []
@@ -629,7 +673,7 @@ def createTable(poly):
     # Out of the new vertices, we create 3 edges, which correspond to the ones initialized in the polygon passed in
     edgeList = [[vertices[0], vertices[1]], [vertices[1], vertices[2]], [vertices[2], vertices[0]]]
 
-    # For each edge, we determine its ymax, ymin, initial x, and negative inverse slope before adding those values to
+    # For each edge, we determine its ymax, ymin, initial x, negative inverse slope, and z before adding those values to
     # its corresponding row
     for i in range(len(edgeList)):
         # First we grab an edge and check to see which of the two points has the higher y value
@@ -646,6 +690,11 @@ def createTable(poly):
             # just used later the slope calculation
             x1 = math.trunc(edge[0][0])
             x2 = math.trunc(edge[1][0])
+
+            # We also need to grab the z value of the highest point and the lowest point. Both are used to find the
+            # change in z (dz) later
+            z1 = edge[0][2]
+            z2 = edge[1][2]
         else:
             ymin = math.trunc(edge[0][1])
             ymax = math.trunc(edge[1][1])
@@ -653,19 +702,24 @@ def createTable(poly):
             x2 = math.trunc(edge[0][0])
             x1 = math.trunc(edge[1][0])
 
-        # If the edge is a horizontal line, then we need to set the negative inverse slope to 0
+            z2 = edge[0][2]
+            z1 = edge[1][2]
+
+        # If the edge is a horizontal line, then we need to set the negative inverse slope and change in z to 0
         if ymax - ymin == 0:
-            dx = 0
+            dx = 0.0
+            dz = 0.0
         else:
             dx = -((x1 - x2) / (ymax - ymin))
+            dz = (z1 - z2) / (ymax - ymin)
 
         # Then we create the rows based on which edge is being evaluated
         if i == 0:
-            rowOne = [ymax, ymin, x1, dx]
+            rowOne = [ymax, ymin, x1, dx, z1, dz]
         elif i == 1:
-            rowTwo = [ymax, ymin, x1, dx]
+            rowTwo = [ymax, ymin, x1, dx, z1, dz]
         else:
-            rowThree = [ymax, ymin, x1, dx]
+            rowThree = [ymax, ymin, x1, dx, z1, dz]
 
     # Once we're done creating the rows, we need to order the edges in the table by their ymax and then their initial x
     # This is done be checking which two edges share the same ymax - since this would imply those two edges have the
@@ -749,121 +803,107 @@ def pointerDepth():
 # Everything below this point implements the interface
 def reset():
     w.delete(ALL)
+    ZBUFFER = [[MAXDEPTH for j in range(CanvasHeight)] for i in range(CanvasWidth)]
     resetPyramid(currentObject[objectNumber])
-    for i in range(len(currentObject)):
-        drawAllObjects(currentObject[i])
+    drawAllObjects()
 
 
 def larger():
     w.delete(ALL)
+    ZBUFFER = [[MAXDEPTH for j in range(CanvasHeight)] for i in range(CanvasWidth)]
     scale(currentObject[objectNumber].pointcloud, 1.1)
-    for i in range(len(currentObject)):
-        drawAllObjects(currentObject[i])
+    drawAllObjects()
 
 
 def smaller():
     w.delete(ALL)
+    ZBUFFER = [[MAXDEPTH for j in range(CanvasHeight)] for i in range(CanvasWidth)]
     scale(currentObject[objectNumber].pointcloud, .9)
-    for i in range(len(currentObject)):
-        drawAllObjects(currentObject[i])
+    drawAllObjects()
 
 
 def forward():
     w.delete(ALL)
-    translate(currentObject[objectNumber].pointcloud, [0, 0, 5])
-    for i in range(len(currentObject)):
-        drawAllObjects(currentObject[i])
+    translate(currentObject[objectNumber].pointcloud, [0, 0, 10])
+    drawAllObjects()
 
 
 def backward():
     w.delete(ALL)
-    translate(currentObject[objectNumber].pointcloud, [0, 0, -5])
-    for i in range(len(currentObject)):
-        drawAllObjects(currentObject[i])
+    translate(currentObject[objectNumber].pointcloud, [0, 0, -10])
+    drawAllObjects()
 
 
 def left():
     w.delete(ALL)
-    translate(currentObject[objectNumber].pointcloud, [-5, 0, 0])
-    for i in range(len(currentObject)):
-        drawAllObjects(currentObject[i])
+    translate(currentObject[objectNumber].pointcloud, [-10, 0, 0])
+    drawAllObjects()
 
 
 def right():
     w.delete(ALL)
-    translate(currentObject[objectNumber].pointcloud, [5, 0, 0])
-    for i in range(len(currentObject)):
-        drawAllObjects(currentObject[i])
+    translate(currentObject[objectNumber].pointcloud, [10, 0, 0])
+    drawAllObjects()
 
 
 def up():
     w.delete(ALL)
-    translate(currentObject[objectNumber].pointcloud, [0, 5, 0])
-    for i in range(len(currentObject)):
-        drawAllObjects(currentObject[i])
+    translate(currentObject[objectNumber].pointcloud, [0, 10, 0])
+    drawAllObjects()
 
 
 def down():
     w.delete(ALL)
-    translate(currentObject[objectNumber].pointcloud, [0, -5, 0])
-    for i in range(len(currentObject)):
-        drawAllObjects(currentObject[i])
+    translate(currentObject[objectNumber].pointcloud, [0, -10, 0])
+    drawAllObjects()
 
 
 def xPlus():
     w.delete(ALL)
     rotateX(currentObject[objectNumber].pointcloud, 5)
-    for i in range(len(currentObject)):
-        drawAllObjects(currentObject[i])
+    drawAllObjects()
 
 
 def xMinus():
     w.delete(ALL)
     rotateX(currentObject[objectNumber].pointcloud, -5)
-    for i in range(len(currentObject)):
-        drawAllObjects(currentObject[i])
+    drawAllObjects()
 
 
 def yPlus():
     w.delete(ALL)
     rotateY(currentObject[objectNumber].pointcloud, 5)
-    for i in range(len(currentObject)):
-        drawAllObjects(currentObject[i])
+    drawAllObjects()
 
 
 def yMinus():
     w.delete(ALL)
     rotateY(currentObject[objectNumber].pointcloud, -5)
-    for i in range(len(currentObject)):
-        drawAllObjects(currentObject[i])
+    drawAllObjects()
 
 
 def zPlus():
     w.delete(ALL)
     rotateZ(currentObject[objectNumber].pointcloud, 5)
-    for i in range(len(currentObject)):
-        drawAllObjects(currentObject[i])
+    drawAllObjects()
 
 
 def zMinus():
     w.delete(ALL)
     rotateZ(currentObject[objectNumber].pointcloud, -5)
-    for i in range(len(currentObject)):
-        drawAllObjects(currentObject[i])
+    drawAllObjects()
 
 
 def nextSelection():
     w.delete(ALL)
     selectNextObject()
-    for i in range(len(currentObject)):
-        drawAllObjects(currentObject[i])
+    drawAllObjects()
 
 
 def prevSelection():
     w.delete(ALL)
     selectPrevObject()
-    for i in range(len(currentObject)):
-        drawAllObjects(currentObject[i])
+    drawAllObjects()
 
 
 def backfaceToggle():
@@ -873,8 +913,7 @@ def backfaceToggle():
 
     print("backfacetoggle stub executed.")
 
-    for i in range(len(currentObject)):
-        drawAllObjects(currentObject[i])
+    drawAllObjects()
 
 def changeFillSetting():
     global FILLSETTING
@@ -890,8 +929,7 @@ def changeFillSetting():
 
     print("filltoggle stub executed")
 
-    for i in range(len(currentObject)):
-        drawAllObjects(currentObject[i])
+    drawAllObjects()
 
 
 # ***************************** Interface and Window Construction ***************************
@@ -902,9 +940,8 @@ outerframe.pack()
 w = Canvas(outerframe, width=CanvasWidth, height=CanvasHeight)
 # We set the first object in the list of objects to be selected
 currentObject[0].selected = True
-# Then we iterate through the list of objects and create them
-for i in range(len(currentObject)):
-    drawAllObjects(currentObject[i])
+# Then we draw all of the objects
+drawAllObjects()
 fill_button_text = StringVar()
 fill_button_text.set("Setting is: %d" % FILLSETTING)
 w.pack()
