@@ -8,8 +8,6 @@
         with a reset button.
 """
 
-# TODO: Add polygon filling.
-
 import math
 
 from operator import add
@@ -196,7 +194,7 @@ class Box:
 # ***************************** Create the Objects ***************************
 
 # Create a box in the middle of the frame
-customCube1 = Box(50, 50, 50, [0,0,0])
+customCube1 = Box(100, 100, 100, [0,0,0])
 # Create a box offset by -200 in x and 100 in z, and make it longer
 customCube2 = Box(100, 50, 50, [-200, 0, 100])
 # Create a pyramid that is taller than it is wide, 200 in x and 100 in z
@@ -541,14 +539,13 @@ def scan(poly, selected):
     # So long as the pointer is above the minimum value of y of the two edges that we are scanning between, we will
     # continue to fill the polygon
     while pointer[1] > table[0][1] and pointer[1] > table[1][1]:
-        zHorLeft = table[0][4] + table[0][5]
-        zHorRight = table[1][4] + table[1][5]
+        zHorLeft = table[0][4] - table[0][5]
+        zHorRight = table[1][4] - table[1][5]
 
-        if math.trunc(table[0][2]-table[1][2]) == 0:
+        if table[1][2]-table[0][2] == 0:
             zVertConst = 0
         else:
-            zVertConst = (zHorRight - zHorLeft)/(math.trunc(table[1][2]-table[0][2]))
-
+            zVertConst = (zHorRight - zHorLeft)/(table[1][2]-table[0][2])
 
         zVert = zHorLeft
 
@@ -558,7 +555,8 @@ def scan(poly, selected):
 
             # First we check to see if the point is on-screen
             if 0 < pointer[0] < CanvasWidth and 0 < pointer[1] < CanvasHeight and \
-                            pz <= ZBUFFER[math.trunc(pointer[0])][pointer[1]]:
+                            pz < ZBUFFER[math.trunc(pointer[0])][pointer[1]]:
+
                 ZBUFFER[math.trunc(pointer[0])][pointer[1]] = pz
                 # The farther along X the pointer is, the more white it becomes - this equation figures out the
                 # hexadecimal color of the point based on where the point is and its relation to the CanvasWidth
@@ -616,13 +614,13 @@ def scan(poly, selected):
     # Since the ymin values of the last two edges should be the same, we just need to check if we passed one of them
     # before we stop filling
     while pointer[1] > table[0][1] and pointer[1] > table[1][1]:
-        zHorLeft = table[0][4] + table[0][5]
-        zHorRight = table[1][4] + table[1][5]
+        zHorLeft = table[0][4] - table[0][5]
+        zHorRight = table[1][4] - table[1][5]
 
-        if math.trunc(table[0][2]-table[1][2]) == 0:
+        if table[1][2]-table[0][2] == 0:
             zVertConst = 0
         else:
-            zVertConst = (zHorRight - zHorLeft)/(math.trunc(table[1][2]-table[0][2]))
+            zVertConst = (zHorRight - zHorLeft)/(table[1][2]-table[0][2])
 
         zVert = zHorLeft
 
@@ -630,7 +628,7 @@ def scan(poly, selected):
             pz = zVert + zVertConst
 
             if 0 < pointer[0] < CanvasWidth and 0 < pointer[1] < CanvasHeight and \
-                            pz <= ZBUFFER[math.trunc(pointer[0])][pointer[1]]:
+                            pz < ZBUFFER[math.trunc(pointer[0])][pointer[1]]:
                 ZBUFFER[math.trunc(pointer[0])][pointer[1]] = pz
                 fillBlue = hex(round(pointer[0] * (255 / CanvasWidth))).split('x')[-1]
 
