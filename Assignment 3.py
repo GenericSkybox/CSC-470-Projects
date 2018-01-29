@@ -13,13 +13,16 @@ import math
 from operator import add
 from tkinter import *
 
-CanvasWidth = 650
+
+CanvasWidth = 700
 CanvasHeight = 600
 d = 500
 WIREFRAME = False
 FILLSETTING = 1
 ZBUFFER = []
-MAXDEPTH = 1000
+MAXDEPTH = 10000
+POLYOCCLUSION = True
+
 
 # ***************************** Initialize Object Classes ***************************
 class Pyramid:
@@ -542,7 +545,7 @@ def scan(poly, selected):
         zHorLeft = table[0][4] - table[0][5]
         zHorRight = table[1][4] - table[1][5]
 
-        if table[1][2]-table[0][2] == 0:
+        if math.trunc(table[1][2]-table[0][2]) == 0:
             zVertConst = 0
         else:
             zVertConst = (zHorRight - zHorLeft)/(table[1][2]-table[0][2])
@@ -553,9 +556,12 @@ def scan(poly, selected):
         while pointer[0] < table[1][2]:
             pz = zVert + zVertConst
 
+            if not POLYOCCLUSION:
+                pz = ZBUFFER[math.trunc(pointer[0])][pointer[1]]
+
             # First we check to see if the point is on-screen
             if 0 < pointer[0] < CanvasWidth and 0 < pointer[1] < CanvasHeight and \
-                            pz < ZBUFFER[math.trunc(pointer[0])][pointer[1]]:
+                            pz <= ZBUFFER[math.trunc(pointer[0])][pointer[1]]:
 
                 ZBUFFER[math.trunc(pointer[0])][pointer[1]] = pz
                 # The farther along X the pointer is, the more white it becomes - this equation figures out the
@@ -571,7 +577,7 @@ def scan(poly, selected):
                 # Lastly, we make the actual fill color to be 0000 plus whatever the range of blue we have
                 fillColor = "#FFFF%s" % fillBlue
 
-                if selected:
+                if not selected:
                     fillColor = "#0000FF"
             # If the pointer is off the screen, then we change the fill color to be "", which is basically null. This
             # will prevent the program from crashing and also minorly help boost performance
@@ -617,7 +623,7 @@ def scan(poly, selected):
         zHorLeft = table[0][4] - table[0][5]
         zHorRight = table[1][4] - table[1][5]
 
-        if table[1][2]-table[0][2] == 0:
+        if math.trunc(table[1][2]-table[0][2]) == 0:
             zVertConst = 0
         else:
             zVertConst = (zHorRight - zHorLeft)/(table[1][2]-table[0][2])
@@ -627,8 +633,11 @@ def scan(poly, selected):
         while pointer[0] < table[1][2]:
             pz = zVert + zVertConst
 
+            if not POLYOCCLUSION:
+                pz = ZBUFFER[math.trunc(pointer[0])][pointer[1]]
+
             if 0 < pointer[0] < CanvasWidth and 0 < pointer[1] < CanvasHeight and \
-                            pz < ZBUFFER[math.trunc(pointer[0])][pointer[1]]:
+                            pz <= ZBUFFER[math.trunc(pointer[0])][pointer[1]]:
                 ZBUFFER[math.trunc(pointer[0])][pointer[1]] = pz
                 fillBlue = hex(round(pointer[0] * (255 / CanvasWidth))).split('x')[-1]
 
@@ -637,7 +646,7 @@ def scan(poly, selected):
 
                 fillColor = "#FFFF%s" % fillBlue
 
-                if selected:
+                if not selected:
                     fillColor = "#0000FF"
             else:
                 fillColor = ""
@@ -929,6 +938,23 @@ def changeFillSetting():
     drawAllObjects()
 
 
+def polygonOcclusion():
+    global POLYOCCLUSION
+    w.delete(ALL)
+    POLYOCCLUSION = not POLYOCCLUSION
+
+    if POLYOCCLUSION:
+        setting = "ON"
+    else:
+        setting = "OFF"
+
+    occlusion_button_text.set("Occlusion is %s" % setting)
+
+    print("polygonocclusion stub executed")
+
+    drawAllObjects()
+
+
 # ***************************** Interface and Window Construction ***************************
 root = Tk()
 outerframe = Frame(root)
@@ -941,10 +967,13 @@ currentObject[0].selected = True
 drawAllObjects()
 fill_button_text = StringVar()
 fill_button_text.set("Setting is: %d" % FILLSETTING)
+occlusion_button_text = StringVar()
+occlusion_button_text.set("Occlusion is ON")
 w.pack()
 
 controlpanel = Frame(outerframe)
 controlpanel.pack()
+
 
 resetcontrols = Frame(controlpanel, height=100, borderwidth=2, relief=RIDGE)
 resetcontrols.pack(side=LEFT)
@@ -954,6 +983,7 @@ resetcontrolslabel.pack()
 
 resetButton = Button(resetcontrols, text="Reset", fg="green", command=reset)
 resetButton.pack(side=LEFT)
+
 
 scalecontrols = Frame(controlpanel, borderwidth=2, relief=RIDGE)
 scalecontrols.pack(side=LEFT)
@@ -966,6 +996,7 @@ largerButton.pack(side=LEFT)
 
 smallerButton = Button(scalecontrols, text="Smaller", command=smaller)
 smallerButton.pack(side=LEFT)
+
 
 translatecontrols = Frame(controlpanel, borderwidth=2, relief=RIDGE)
 translatecontrols.pack(side=LEFT)
@@ -991,6 +1022,7 @@ upButton.pack(side=LEFT)
 upButton = Button(translatecontrols, text="DN", command=down)
 upButton.pack(side=LEFT)
 
+
 rotationcontrols = Frame(controlpanel, borderwidth=2, relief=RIDGE)
 rotationcontrols.pack(side=LEFT)
 
@@ -1015,6 +1047,7 @@ zPlusButton.pack(side=LEFT)
 zMinusButton = Button(rotationcontrols, text="Z-", command=zMinus)
 zMinusButton.pack(side=LEFT)
 
+
 selectcontrols = Frame(controlpanel, borderwidth=2, relief=RIDGE)
 selectcontrols.pack(side=LEFT)
 
@@ -1027,6 +1060,7 @@ selectBackwardButton.pack(side=LEFT)
 selectForwardButton = Button(selectcontrols, text="Next", command=nextSelection)
 selectForwardButton.pack(side=LEFT)
 
+
 wireframecontrols = Frame(controlpanel, borderwidth=2, relief=RIDGE)
 wireframecontrols.pack(side=LEFT)
 
@@ -1036,6 +1070,7 @@ wireframecontrolslabel.pack()
 wireframeToggle = Checkbutton(wireframecontrols, text="Toggle", command=backfaceToggle)
 wireframeToggle.pack(side=LEFT)
 
+
 fillsettingcontrols = Frame(controlpanel, borderwidth=2, relief=RIDGE)
 fillsettingcontrols.pack(side=LEFT)
 
@@ -1044,5 +1079,15 @@ fillsettingcontrolslabel.pack()
 
 fillsettingButton = Button(fillsettingcontrols, textvariable=fill_button_text, command=changeFillSetting)
 fillsettingButton.pack(side=LEFT)
+
+
+polyocclusioncontrols = Frame(controlpanel, borderwidth=2, relief=RIDGE)
+polyocclusioncontrols.pack(side=LEFT)
+
+polyocclusioncontrolslabel = Label(polyocclusioncontrols, text="Polygon Occlusion")
+polyocclusioncontrolslabel.pack()
+
+polyocclusionButton = Button(polyocclusioncontrols, textvariable=occlusion_button_text, command=polygonOcclusion)
+polyocclusionButton.pack()
 
 root.mainloop()
