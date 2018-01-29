@@ -547,7 +547,7 @@ def scan(poly, selected):
         if math.trunc(table[0][2]-table[1][2]) == 0:
             zVertConst = 0
         else:
-            zVertConst = (zHorRight - zHorLeft)/(math.trunc(table[0][2]-table[1][2]))
+            zVertConst = (zHorRight - zHorLeft)/(math.trunc(table[1][2]-table[0][2]))
 
 
         zVert = zHorLeft
@@ -622,7 +622,7 @@ def scan(poly, selected):
         if math.trunc(table[0][2]-table[1][2]) == 0:
             zVertConst = 0
         else:
-            zVertConst = (zHorRight - zHorLeft)/(math.trunc(table[0][2]-table[1][2]))
+            zVertConst = (zHorRight - zHorLeft)/(math.trunc(table[1][2]-table[0][2]))
 
         zVert = zHorLeft
 
@@ -710,7 +710,7 @@ def createTable(poly):
             dz = 0.0
         else:
             dx = -((x1 - x2) / (ymax - ymin))
-            dz = (z1 - z2) / (ymax - ymin)
+            dz = (z2 - z1) / (ymin - ymax)
 
         # Then we create the rows based on which edge is being evaluated
         if i == 0:
