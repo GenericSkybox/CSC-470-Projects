@@ -548,7 +548,7 @@ def scan(poly, selected):
             zVertConst = 0
         else:
             zVertConst = (zHorRight - zHorLeft)/(math.trunc(table[0][2]-table[1][2]))
-        
+
 
         zVert = zHorLeft
 
