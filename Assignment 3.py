@@ -548,6 +548,7 @@ def scan(poly, selected):
             zVertConst = 0
         else:
             zVertConst = (zHorRight - zHorLeft)/(math.trunc(table[0][2]-table[1][2]))
+        
 
         zVert = zHorLeft
 
@@ -627,8 +628,6 @@ def scan(poly, selected):
 
         while pointer[0] < table[1][2]:
             pz = zVert + zVertConst
-            if pz < -0.12:
-                print(zVert)
 
             if 0 < pointer[0] < CanvasWidth and 0 < pointer[1] < CanvasHeight and \
                             pz <= ZBUFFER[math.trunc(pointer[0])][pointer[1]]:
@@ -641,7 +640,7 @@ def scan(poly, selected):
                 fillColor = "#FFFF%s" % fillBlue
 
                 if selected:
-                    fillColor = "#000000"
+                    fillColor = "#0000FF"
             else:
                 fillColor = ""
 
