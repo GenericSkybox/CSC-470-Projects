@@ -207,10 +207,11 @@ customCube2 = Box(100, 50, 50, [-200, 0, 100])
 # Create a pyramid that is taller than it is wide, 200 in x and 100 in z
 customPyramid = Pyramid(100, 150, [200, 0, 100])
 customCube3 = Box(100, 100, 100,[0, 0, 0])
+customPyramid2 = Pyramid(100, 100, [0, 0, 0])
 
 
 # This is the main list of objects referenced later to be drawn
-currentObject = [customCube1, customCube3]
+currentObject = [customCube1, customPyramid2]
 # This is the iterator to keep track of which object is selected
 objectNumber = 0
 
@@ -552,26 +553,35 @@ def scan(poly, selected):
         zHorRight = table[1][4] - table[1][5]
 
         # Then, we have to determine the vertical constant of each point in a line, which is dependent on the left and
-        # right edges' horizontal constants and the x initials of the edges
+        # right edges' horizontal z's and the x initials of the edges
+        # If the initial x for both edges is (almost) the same, then we just set the constant to be 0
         if math.trunc(table[1][2]-table[0][2]) == 0:
             zVertConst = 0
         else:
             zVertConst = (zHorRight - zHorLeft)/(table[1][2]-table[0][2])
 
+        # To get us started, we set the vertical iterator to left edge's horizontal z
         zVert = zHorLeft
 
         # For every line between two edges, we'll work the pointer from the left edge's initial x to the right edge's
         while pointer[0] < table[1][2]:
+            # We need to determine the z value of our point and see if it's closer to the camera than whatever point is
+            # already at that spot
             pz = zVert + zVertConst
 
+            # If polyocclusion is turned off, then we just ignore the z buffer basically by make the z value of the
+            # pointer to be the same as the value already in the ZBUFFER
             if not POLYOCCLUSION:
                 pz = ZBUFFER[math.trunc(pointer[0])][pointer[1]]
 
-            # First we check to see if the point is on-screen
+            # Then we check to see if the point is on-screen and if the z value of the pointer is less than or equal to
+            # the current value of the zbuffer at the pointer's location
             if 0 < pointer[0] < CanvasWidth and 0 < pointer[1] < CanvasHeight and \
                             pz <= ZBUFFER[math.trunc(pointer[0])][pointer[1]]:
 
+                # We update the value at the zbuffer to be that of the z of the pointer
                 ZBUFFER[math.trunc(pointer[0])][pointer[1]] = pz
+
                 # The farther along X the pointer is, the more white it becomes - this equation figures out the
                 # hexadecimal color of the point based on where the point is and its relation to the CanvasWidth
                 # We also split the "0x" part of it so we can concatenate the string easily to the rest of the fill
@@ -585,6 +595,7 @@ def scan(poly, selected):
                 # Lastly, we make the actual fill color to be 0000 plus whatever the range of blue we have
                 fillColor = "#FFFF%s" % fillBlue
 
+                # This is used to demonstrate zbuffer by making the unselected object blue
                 if not selected:
                     fillColor = "#0000FF"
             # If the pointer is off the screen, then we change the fill color to be "", which is basically null. This
@@ -595,17 +606,19 @@ def scan(poly, selected):
             # Now that we have our fill color, we make the point we draw have the outline of that fill color and not
             # bother filling in the actual rectangle since the points are small enough that it doesn't matter
             w.create_rectangle(pointer[0], pointer[1], pointer[0], pointer[1], fill="", outline=fillColor)
+            # We update the zVert iterator to be that of the z of the pointer
             zVert = pz
-            # Afterwards, we increment the pointer along the x axis
+            # Lastly for this row, we increment the pointer along the x axis
             pointer[0] += 1
 
+        # Once we're done with iterating through the row, we update the initial z for both edges to be that of the left
+        # and right horizonal z's respectively
         table[0][4] = zHorLeft
         table[1][4] = zHorRight
-        # After a scanline is done for line on the polygon, we increment the initial x values of both edges by their
-        # negative inverse slopes
+        # We then increment the initial x values of both edges by their negative inverse slopes
         table[0][2] += table[0][3]
         table[1][2] += table[1][3]
-        # We set the pointer equal to the leftmost edge's initial x and decrement the y value of pointer
+        # And finally, we set the pointer equal to the leftmost edge's initial x and decrement the y value of pointer
         pointer[0] = table[0][2]
         pointer[1] -= 1
 
@@ -627,7 +640,7 @@ def scan(poly, selected):
     # to right
     # Since the ymin values of the last two edges should be the same, we just need to check if we passed one of them
     # before we stop filling
-    while pointer[1] > table[0][1] and pointer[1] > table[1][1]:
+    while pointer[1] > table[0][1]:
         zHorLeft = table[0][4] - table[0][5]
         zHorRight = table[1][4] - table[1][5]
 
@@ -814,111 +827,110 @@ def createTable(poly):
 
 # ***************************** Interface Functions ***************************
 # Everything below this point implements the interface
+
+# Reset Button Call
 def reset():
     w.delete(ALL)
-    ZBUFFER = [[MAXDEPTH for j in range(CanvasHeight)] for i in range(CanvasWidth)]
     resetPyramid(currentObject[objectNumber])
     drawAllObjects()
 
-
+# Scale Larger Call
 def larger():
     w.delete(ALL)
-    ZBUFFER = [[MAXDEPTH for j in range(CanvasHeight)] for i in range(CanvasWidth)]
     scale(currentObject[objectNumber].pointcloud, 1.1)
     drawAllObjects()
 
-
+# Scale Smaller Call
 def smaller():
     w.delete(ALL)
-    ZBUFFER = [[MAXDEPTH for j in range(CanvasHeight)] for i in range(CanvasWidth)]
     scale(currentObject[objectNumber].pointcloud, .9)
     drawAllObjects()
 
-
+# Translate Forward Call
 def forward():
     w.delete(ALL)
     translate(currentObject[objectNumber].pointcloud, [0, 0, 10])
     drawAllObjects()
 
-
+# Translate Backward Call
 def backward():
     w.delete(ALL)
     translate(currentObject[objectNumber].pointcloud, [0, 0, -10])
     drawAllObjects()
 
-
+# Translate Left Call
 def left():
     w.delete(ALL)
     translate(currentObject[objectNumber].pointcloud, [-10, 0, 0])
     drawAllObjects()
 
-
+# Translate Right Call
 def right():
     w.delete(ALL)
     translate(currentObject[objectNumber].pointcloud, [10, 0, 0])
     drawAllObjects()
 
-
+# Translate Up Call
 def up():
     w.delete(ALL)
     translate(currentObject[objectNumber].pointcloud, [0, 10, 0])
     drawAllObjects()
 
-
+# Translate Down Call
 def down():
     w.delete(ALL)
     translate(currentObject[objectNumber].pointcloud, [0, -10, 0])
     drawAllObjects()
 
-
+# Rotate Positive X Call
 def xPlus():
     w.delete(ALL)
     rotateX(currentObject[objectNumber].pointcloud, 5)
     drawAllObjects()
 
-
+# Rotate Negative X Call
 def xMinus():
     w.delete(ALL)
     rotateX(currentObject[objectNumber].pointcloud, -5)
     drawAllObjects()
 
-
+# Rotate Positive Y Call
 def yPlus():
     w.delete(ALL)
     rotateY(currentObject[objectNumber].pointcloud, 5)
     drawAllObjects()
 
-
+# Rotate Negative Y Call
 def yMinus():
     w.delete(ALL)
     rotateY(currentObject[objectNumber].pointcloud, -5)
     drawAllObjects()
 
-
+# Rotate Positive Z Call
 def zPlus():
     w.delete(ALL)
     rotateZ(currentObject[objectNumber].pointcloud, 5)
     drawAllObjects()
 
-
+# Rotate Negative Z Call
 def zMinus():
     w.delete(ALL)
     rotateZ(currentObject[objectNumber].pointcloud, -5)
     drawAllObjects()
 
-
+# Select Next Object Call
 def nextSelection():
     w.delete(ALL)
     selectNextObject()
     drawAllObjects()
 
-
+# Select Previous Object Call
 def prevSelection():
     w.delete(ALL)
     selectPrevObject()
     drawAllObjects()
 
-
+# Toggle Backface Culling Call
 def backfaceToggle():
     global WIREFRAME
     w.delete(ALL)
@@ -928,9 +940,12 @@ def backfaceToggle():
 
     drawAllObjects()
 
+# Change Filling Setting Call
 def changeFillSetting():
     global FILLSETTING
+
     w.delete(ALL)
+
     if FILLSETTING == 0:
         FILLSETTING = 1
     elif FILLSETTING == 1:
@@ -944,10 +959,12 @@ def changeFillSetting():
 
     drawAllObjects()
 
-
+# Toggle Polygon Occlusion Call
 def polygonOcclusion():
     global POLYOCCLUSION
+
     w.delete(ALL)
+
     POLYOCCLUSION = not POLYOCCLUSION
 
     if POLYOCCLUSION:
@@ -963,25 +980,30 @@ def polygonOcclusion():
 
 
 # ***************************** Interface and Window Construction ***************************
+# Here we actually construct the base of the interface with tkinter
 root = Tk()
 outerframe = Frame(root)
 outerframe.pack()
-
 w = Canvas(outerframe, width=CanvasWidth, height=CanvasHeight)
-# We set the first object in the list of objects to be selected
+w.pack()
+
+# Then we set the first object in the list of objects to be selected
 currentObject[0].selected = True
 # Then we draw all of the objects
 drawAllObjects()
+
+# We also set up the text for the polygon filling and polygon occlusion buttons which need to be modified every time we
+# press them
 fill_button_text = StringVar()
 fill_button_text.set("Setting is: %d" % FILLSETTING)
 occlusion_button_text = StringVar()
 occlusion_button_text.set("Occlusion is ON")
-w.pack()
 
+# So before we set up all of the buttons and labels, we need to make the control panel for them
 controlpanel = Frame(outerframe)
 controlpanel.pack()
 
-
+# Reset Button Block
 resetcontrols = Frame(controlpanel, height=100, borderwidth=2, relief=RIDGE)
 resetcontrols.pack(side=LEFT)
 
@@ -991,7 +1013,7 @@ resetcontrolslabel.pack()
 resetButton = Button(resetcontrols, text="Reset", fg="green", command=reset)
 resetButton.pack(side=LEFT)
 
-
+# Scale Buttons Block
 scalecontrols = Frame(controlpanel, borderwidth=2, relief=RIDGE)
 scalecontrols.pack(side=LEFT)
 
@@ -1004,7 +1026,7 @@ largerButton.pack(side=LEFT)
 smallerButton = Button(scalecontrols, text="Smaller", command=smaller)
 smallerButton.pack(side=LEFT)
 
-
+# Translate Buttons Block
 translatecontrols = Frame(controlpanel, borderwidth=2, relief=RIDGE)
 translatecontrols.pack(side=LEFT)
 
@@ -1029,7 +1051,7 @@ upButton.pack(side=LEFT)
 upButton = Button(translatecontrols, text="DN", command=down)
 upButton.pack(side=LEFT)
 
-
+# Rotation Buttons Block
 rotationcontrols = Frame(controlpanel, borderwidth=2, relief=RIDGE)
 rotationcontrols.pack(side=LEFT)
 
@@ -1054,7 +1076,7 @@ zPlusButton.pack(side=LEFT)
 zMinusButton = Button(rotationcontrols, text="Z-", command=zMinus)
 zMinusButton.pack(side=LEFT)
 
-
+# Selection Buttons Block
 selectcontrols = Frame(controlpanel, borderwidth=2, relief=RIDGE)
 selectcontrols.pack(side=LEFT)
 
@@ -1067,7 +1089,7 @@ selectBackwardButton.pack(side=LEFT)
 selectForwardButton = Button(selectcontrols, text="Next", command=nextSelection)
 selectForwardButton.pack(side=LEFT)
 
-
+# Wireframe Toggle Block
 wireframecontrols = Frame(controlpanel, borderwidth=2, relief=RIDGE)
 wireframecontrols.pack(side=LEFT)
 
@@ -1077,7 +1099,7 @@ wireframecontrolslabel.pack()
 wireframeToggle = Checkbutton(wireframecontrols, text="Toggle", command=backfaceToggle)
 wireframeToggle.pack(side=LEFT)
 
-
+# Fill Setting Button Block
 fillsettingcontrols = Frame(controlpanel, borderwidth=2, relief=RIDGE)
 fillsettingcontrols.pack(side=LEFT)
 
@@ -1087,7 +1109,7 @@ fillsettingcontrolslabel.pack()
 fillsettingButton = Button(fillsettingcontrols, textvariable=fill_button_text, command=changeFillSetting)
 fillsettingButton.pack(side=LEFT)
 
-
+# Polygon Occlusion Button Block
 polyocclusioncontrols = Frame(controlpanel, borderwidth=2, relief=RIDGE)
 polyocclusioncontrols.pack(side=LEFT)
 
@@ -1097,4 +1119,5 @@ polyocclusioncontrolslabel.pack()
 polyocclusionButton = Button(polyocclusioncontrols, textvariable=occlusion_button_text, command=polygonOcclusion)
 polyocclusionButton.pack()
 
+# Loop the window
 root.mainloop()
