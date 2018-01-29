@@ -13,10 +13,12 @@ import math
 from operator import add
 from tkinter import *
 
-
+# Here we're defining some canvas constants
 CanvasWidth = 700
 CanvasHeight = 600
 d = 500
+
+# Here we define the ZBUFFER frame and any global variables used in buttons
 WIREFRAME = False
 FILLSETTING = 1
 ZBUFFER = []
@@ -194,6 +196,8 @@ class Box:
         self.pointcloud = [self.base1, self.base2, self.base3, self.base4, self.base5, self.base6, self.base7,
                            self.base8, self.center]
 
+    # End Box Class
+
 # ***************************** Create the Objects ***************************
 
 # Create a box in the middle of the frame
@@ -202,11 +206,11 @@ customCube1 = Box(100, 100, 100, [0,0,0])
 customCube2 = Box(100, 50, 50, [-200, 0, 100])
 # Create a pyramid that is taller than it is wide, 200 in x and 100 in z
 customPyramid = Pyramid(100, 150, [200, 0, 100])
-customBigCube = Box(100, 100, 100,[0, 0, 0])
+customCube3 = Box(100, 100, 100,[0, 0, 0])
 
 
 # This is the main list of objects referenced later to be drawn
-currentObject = [customCube1, customBigCube]
+currentObject = [customCube1, customCube3]
 # This is the iterator to keep track of which object is selected
 objectNumber = 0
 
@@ -405,25 +409,27 @@ def selectPrevObject():
 
     print("prevSelection stub executed.")
 
-
+# ***************************** Backend Button Functions ***************************
+# This function resets the ZBUFFER and then redraws every object in our currentObject list
 def drawAllObjects():
+    # First we grab the global ZBUFFER, then we set each point in the zbuffer frame to have the MAXDEPTH, which is
+    # defined at the beginning of the program
     global ZBUFFER
     ZBUFFER = [[MAXDEPTH for j in range(CanvasHeight)] for i in range(CanvasWidth)]
+
+    # Once the ZBUFFER is set, we just draw every object in the currentObject list
     for i in range(len(currentObject)):
         drawCurrentObject(currentObject[i])
+
+    print("ALL OBJECTS DRAWN")
 
 
 # This function will draw an object by repeatedly calling drawPoly on each polygon in the object
 def drawCurrentObject(object):
-    # Check to see if the passed in object is selected, then pass that to the drawPoly function
-    if object.selected:
-        focused = True
-    else:
-        focused = False
-
     # Iterate through the polygons of the object and pass it to drawPoly
     for i in range(len(object.shape)):
-        drawPoly(object.shape[i], focused)
+        # We also pass in whether or not the object is selected
+        drawPoly(object.shape[i], object.selected)
 
     print("drawObject stub executed.")
 
@@ -434,11 +440,15 @@ def drawPoly(poly, selected):
     # First we need to cull the backfaces of the object. This is done by running each polygon through the backface
     # culling function and determining whether or not the polygon is facing the camera
     frontface = backfaceCulling(poly)
-    # If frontface is true, then we display that polygon. This is done by iterating through the vertices of the polygon
-    # and passing each pair to the drawLine function
+
+    # If frontface is true, then we display can display that polygon
     if frontface:
-        if FILLSETTING >= 1 and WIREFRAME == False:
+        # But before we draw the lines for the edges of the polygon, we need to fill it if both the fill setting allows
+        # it and if the wireframe is turned off
+        if FILLSETTING >= 1 and WIREFRAME is False:
+            # If both of those are true, then we can fill the polygon
             scan(poly, selected)
+        # Once we done filling (or not), we iterate through the edges of the polygon and draw the lines for it
         for i in range(len(poly)):
             drawLine(poly[i - 1], poly[i], selected)
 
@@ -449,21 +459,20 @@ def drawPoly(poly, selected):
 # Convert the projected endpoints to display coordinates via a call to 'convertToDisplayCoordinates'
 # draw the actual line using the built-in create_line method
 def drawLine(start, end, selected):
-    # First convert the given start and end points to their perspective projection
+    # First convert the given start and end points of the edge to their perspective projection
     startproject = project(start)
     endproject = project(end)
 
-    # Displace the projection points so that the center of the canvas is the origin
+    # Then we displace the projection points so that the center of the canvas is in the middle of the canvas
     startdisplay = convertToDisplayCoordinates(startproject)
     enddisplay = convertToDisplayCoordinates(endproject)
 
-    # If the object is selected, draw the lines in red. Otherwise, draw them in black
+    # If the fill setting permits it or if we have the wireframes turned on, then we draw the edges of the polygon
     if FILLSETTING != 2 or WIREFRAME is True:
+        # If the object is selected, draw the lines in red. Otherwise, draw them in black
         if selected is True:
-            # Draw the line with the new canvas-centered points, but in red!
             w.create_line(startdisplay[0], startdisplay[1], enddisplay[0], enddisplay[1], fill="red")
         else:
-            # Draw the line with the new canvas-centered points
             w.create_line(startdisplay[0], startdisplay[1], enddisplay[0], enddisplay[1])
 
     print("drawLine stub executed.")
@@ -479,12 +488,11 @@ def project(point):
     xps = (d * point[0]) / (d + point[2])
     yps = (d * point[1]) / (d + point[2])
     zps = point[2] / (d + point[2])
-    # Create the new point perspective projection point
-    ps = [xps, yps, zps]
-    return ps
+    # Return the new point perspective projection point
+    return [xps, yps, zps]
 
 
-# This function converts a 2D point to display coordinates in the tk system.  Note that it will return a
+# This function converts a 2D point to display coordinates (+ depth) in the tk system.  Note that it will return a
 # NEW list of points.  We will not want to keep around the display coordinate points in our object as
 # they are only used in rendering.
 def convertToDisplayCoordinates(point):
@@ -493,16 +501,12 @@ def convertToDisplayCoordinates(point):
     displayXY.append(point[0] + CanvasWidth/2)
     displayXY.append(-point[1] + CanvasHeight/2)
     displayXY.append(point[2])
+    # Return the new display point
     return displayXY
 
 
 # This function is removes the back faces of an object that are pointing away from the camera.
 def backfaceCulling(poly):
-    # q is the perspective projected point that is on the polygon named "poly"
-
-    # First we grab the global boolean WIREFRAME to see if we even need to cull
-    global WIREFRAME
-
     # If WIREFRAME is true, then we'll show the backfaces, return true, and not even bother calculating
     if WIREFRAME:
         return True
@@ -521,19 +525,19 @@ def backfaceCulling(poly):
     # Let's create a point q which is the perspective projected version of the point p0
     q = project(p0)
 
-    # Lastly, we compute the plane offset as the dot product of the surface normal and the perspective point, q,  on the
+    # So then we compute the plane offset as the dot product of the surface normal and the perspective point, q, on the
     # polygon
     offset = q[0] * A + q[1] * B + q[2] * C
 
-    # So if the z component of the surface normal times the screen depth (d) minus the plane offset is less than zero,
-    # the point is on the positive side of the plane.
+    # So if the z component of the surface normal times the screen depth (d) minus the plane offset is greater than
+    # zero, the point is on the positive side of the plane.
     return (C * (-d) - offset) > 0
 
 
 # This function scans the polygon, line by line, and fills it with the appropriate color
 def scan(poly, selected):
     # To begin with, we need to create a table of the polygon's edges that's sorted by the edge's maximum y value
-    # The each row in the table is organized as: ymax, ymin, initial x, negative inverse slope
+    # The each row in the table is organized as: ymax, ymin, initial x, negative inverse slope, z, and change in z
     table = createTable(poly)
     # Once the sorted table is made, we set a pointer to the top of the polygon, which should be the initial x and the
     # maximum y of the first edge in the table
@@ -542,9 +546,13 @@ def scan(poly, selected):
     # So long as the pointer is above the minimum value of y of the two edges that we are scanning between, we will
     # continue to fill the polygon
     while pointer[1] > table[0][1] and pointer[1] > table[1][1]:
+        # Before anything else, we need to determine the z values of the left and right edge of the polygon by taking
+        # each edge's z and subtracting its change in z
         zHorLeft = table[0][4] - table[0][5]
         zHorRight = table[1][4] - table[1][5]
 
+        # Then, we have to determine the vertical constant of each point in a line, which is dependent on the left and
+        # right edges' horizontal constants and the x initials of the edges
         if math.trunc(table[1][2]-table[0][2]) == 0:
             zVertConst = 0
         else:
@@ -672,17 +680,18 @@ def createTable(poly):
     vertices = []
     table = []
 
-    # We then run through the list of vertices and convert them all to display coordinates
+    # We then run through the list of vertices in the polygon, convert them all to display coordinates, and add them to
+    # our new list of vertices
     for i in range(len(poly)):
         vertices.append(convertToDisplayCoordinates(project(poly[i])))
 
     # Out of the new vertices, we create 3 edges, which correspond to the ones initialized in the polygon passed in
     edgeList = [[vertices[0], vertices[1]], [vertices[1], vertices[2]], [vertices[2], vertices[0]]]
 
-    # For each edge, we determine its ymax, ymin, initial x, negative inverse slope, and z before adding those values to
-    # its corresponding row
+    # For each edge, we determine its ymax, ymin, initial x, negative inverse slope, z, and dz before adding those
+    # values to its corresponding row
     for i in range(len(edgeList)):
-        # First we grab an edge and check to see which of the two points has the higher y value
+        # First we grab an edge and check to see which of its two points has the higher y value
         edge = edgeList[i]
 
         if edge[0][1] >= edge[1][1]:
@@ -693,7 +702,7 @@ def createTable(poly):
             ymin = math.trunc(edge[1][1])
 
             # The initial x1 value of the edge corresponds to the point with the highest y value. The other x2 value is
-            # just used later the slope calculation
+            # just used later the "slope" calculation
             x1 = math.trunc(edge[0][0])
             x2 = math.trunc(edge[1][0])
 
@@ -715,6 +724,7 @@ def createTable(poly):
         if ymax - ymin == 0:
             dx = 0.0
             dz = 0.0
+        # Otherwise, compute dx and dz as normal
         else:
             dx = -((x1 - x2) / (ymax - ymin))
             dz = (z2 - z1) / (ymin - ymax)
@@ -762,13 +772,14 @@ def createTable(poly):
             table.append(rowTwo)
             table.append(rowOne)
 
+    # In every other case, once we determine which two edges have the same ymax, we need to figure out which edge
+    # is the leftmost edge. This can be done by comparing their negative inverse slopes. Whichever one is negative -
+    # i.e. the actual slope of the edge is positive - that edge is the leftmost edge.
+
+    # Thus we order the table accordingly: The leftmost highest edge, the rightmost highest edge, and the lowest
+    # edge
     elif rowOne[0] == rowTwo[0]:
-        # In every other case, once we determine which two edges have the same ymax, we need to figure out which edge
-        # is the leftmost edge. This can be done by comparing their negative inverse slopes. Whichever one is negative -
-        # i.e. the actual slope of the edge is positive - that edge is the leftmost edge.
         if rowOne[3] < rowTwo[3]:
-            # Thus we order the table accordingly: The leftmost highest edge, the rightmost highest edge, and the lowest
-            # edge
             table.append(rowOne)
             table.append(rowTwo)
         else:
@@ -799,10 +810,6 @@ def createTable(poly):
 
     # Finally, we return the ordered table
     return table
-
-
-def pointerDepth():
-    return None
 
 
 # ***************************** Interface Functions ***************************
