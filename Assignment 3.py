@@ -207,7 +207,7 @@ customCube2 = Box(100, 50, 50, [-200, 0, 100])
 # Create a pyramid that is taller than it is wide, 200 in x and 100 in z
 customPyramid = Pyramid(100, 150, [200, 0, 100])
 customCube3 = Box(100, 100, 100,[0, 0, 0])
-customPyramid2 = Pyramid(100, 100, [0, 0, 0])
+customPyramid2 = Pyramid(100, 200, [0, 0, 0])
 
 
 # This is the main list of objects referenced later to be drawn
