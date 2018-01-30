@@ -1,11 +1,13 @@
 """
 # Name: Eric Ortiz
 # Student Number: 102-39-903
-# Date: 1/11/18
+# Date: 1/29/18
 # Assignment #3
 # Desc: This program is a basic graphics engine that can display a 3D pyramid on a 2D coordinate plane. There are
-        a handful of tools also provided that allow the user to translate, scale, and rotation the pyramid -- along
+        a handful of tools also provided that allow the user to translate, scale, and rotate the pyramid -- along
         with a reset button.
+        Furthermore, the objects have an option to have their backface removed, to be filled in, and to have their
+        polygons occluded if another object is in front of it.
 """
 
 import math
