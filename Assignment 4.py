@@ -205,9 +205,34 @@ class Cylinder:
         self.length = length
         self.radius = radius
         self.center = center
-        
 
-# ***************************** Create the Objects ***************************
+        c = list(self.center)
+        l = self.length
+        r = self.radius
+
+        self.face11 =
+        self.face12 =
+        self.face13 =
+        self.face14 =
+        self.face15 =
+        self.face16 =
+        self.face17 =
+        self.face18 =
+        self.face1c = list(map(add, c, [0, 0, -l / 2]))
+
+        self.face21 =
+        self.face22 =
+        self.face23 =
+        self.face24 =
+        self.face25 =
+        self.face26 =
+        self.face27 =
+        self.face28 =
+        self.face2c = list(map(add, c, [0, 0, l / 2]))
+
+
+
+        # ***************************** Create the Objects ***************************
 
 # Create a box in the middle of the frame
 customCube1 = Box(100, 100, 100, [0,0,0])
