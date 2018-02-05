@@ -201,7 +201,7 @@ class Box:
     # End Box Class
 
 class Cylinder:
-    def __init__(self, length=8, radius=2, center=[0,0,0]):
+    def __init__(self, length=100, radius=25, center=[0, 0, 0]):
         self.length = length
         self.radius = radius
         self.center = center
@@ -209,31 +209,162 @@ class Cylinder:
         c = list(self.center)
         l = self.length
         r = self.radius
+        T = math.radians(22.5)
 
-        self.face11 =
-        self.face12 =
-        self.face13 =
-        self.face14 =
-        self.face15 =
-        self.face16 =
-        self.face17 =
-        self.face18 =
+        self.face11 = list(map(add, c, [-math.tan(T)*r, r, -l / 2]))
+        self.face12 = list(map(add, c, [math.tan(T)*r, r, -l / 2]))
+        self.face13 = list(map(add, c, [r, math.tan(T)*r, -l / 2]))
+        self.face14 = list(map(add, c, [r, -math.tan(T)*r, -l / 2]))
+        self.face15 = list(map(add, c, [math.tan(T)*r, -r, -l / 2]))
+        self.face16 = list(map(add, c, [-math.tan(T)*r, -r, -l / 2]))
+        self.face17 = list(map(add, c, [-r, -math.tan(T)*r, -l / 2]))
+        self.face18 = list(map(add, c, [-r, math.tan(T)*r, -l / 2]))
         self.face1c = list(map(add, c, [0, 0, -l / 2]))
 
-        self.face21 =
-        self.face22 =
-        self.face23 =
-        self.face24 =
-        self.face25 =
-        self.face26 =
-        self.face27 =
-        self.face28 =
+        self.face21 = list(map(add, c, [-math.tan(T)*r, r, l / 2]))
+        self.face22 = list(map(add, c, [math.tan(T)*r, r, l / 2]))
+        self.face23 = list(map(add, c, [r, math.tan(T)*r, l / 2]))
+        self.face24 = list(map(add, c, [r, -math.tan(T)*r, l / 2]))
+        self.face25 = list(map(add, c, [math.tan(T)*r, -r, l / 2]))
+        self.face26 = list(map(add, c, [-math.tan(T)*r, -r, l / 2]))
+        self.face27 = list(map(add, c, [-r, -math.tan(T)*r, l / 2]))
+        self.face28 = list(map(add, c, [-r, math.tan(T)*r, l / 2]))
         self.face2c = list(map(add, c, [0, 0, l / 2]))
 
+        self.toppoly1 = [self.face11, self.face22, self.face12]
+        self.toppoly2 = [self.face11, self.face21, self.face22]
+        self.toprightpoly1 = [self.face12, self.face23, self.face13]
+        self.toprightpoly2 = [self.face12, self.face22, self.face23]
+        self.rightpoly1 = [self.face13, self.face24, self.face14]
+        self.rightpoly2 = [self.face13, self.face23, self.face24]
+        self.botrightpoly1 = [self.face14, self.face25, self.face15]
+        self.botrightpoly2 = [self.face14, self.face24, self.face25]
+        self.botpoly1 = [self.face15, self.face26, self.face16]
+        self.botpoly2 = [self.face15, self.face25, self.face26]
+        self.botleftpoly1 = [self.face16, self.face27, self.face17]
+        self.botleftpoly2 = [self.face16, self.face26, self.face27]
+        self.leftpoly1 = [self.face17, self.face28, self.face18]
+        self.leftpoly2 = [self.face17, self.face27, self.face28]
+        self.topleftpoly1 = [self.face18, self.face21, self.face11]
+        self.topleftpoly2 = [self.face18, self.face28, self.face21]
 
+        self.front1 = [self.face1c, self.face11, self.face12]
+        self.front2 = [self.face1c, self.face12, self.face13]
+        self.front3 = [self.face1c, self.face13, self.face14]
+        self.front4 = [self.face1c, self.face14, self.face15]
+        self.front5 = [self.face1c, self.face15, self.face16]
+        self.front6 = [self.face1c, self.face16, self.face17]
+        self.front7 = [self.face1c, self.face17, self.face18]
+        self.front8 = [self.face1c, self.face18, self.face11]
 
-        # ***************************** Create the Objects ***************************
+        self.back1 = [self.face2c, self.face22, self.face21]
+        self.back2 = [self.face2c, self.face23, self.face22]
+        self.back3 = [self.face2c, self.face24, self.face23]
+        self.back4 = [self.face2c, self.face25, self.face24]
+        self.back5 = [self.face2c, self.face26, self.face25]
+        self.back6 = [self.face2c, self.face27, self.face26]
+        self.back7 = [self.face2c, self.face28, self.face27]
+        self.back8 = [self.face2c, self.face21, self.face28]
 
+        self.defaultface11 = list(self.face11)
+        self.defaultface12 = list(self.face12)
+        self.defaultface13 = list(self.face13)
+        self.defaultface14 = list(self.face14)
+        self.defaultface15 = list(self.face15)
+        self.defaultface16 = list(self.face16)
+        self.defaultface17 = list(self.face17)
+        self.defaultface18 = list(self.face18)
+        self.defaultface1c = list(self.face1c)
+
+        self.defaultface21 = list(self.face21)
+        self.defaultface22 = list(self.face22)
+        self.defaultface23 = list(self.face23)
+        self.defaultface24 = list(self.face24)
+        self.defaultface25 = list(self.face25)
+        self.defaultface26 = list(self.face26)
+        self.defaultface27 = list(self.face27)
+        self.defaultface28 = list(self.face28)
+        self.defaultface2c = list(self.face2c)
+
+        self.shape = [self.toppoly1, self.toppoly2, self.toprightpoly1, self.toprightpoly2, self.rightpoly1,
+                      self.rightpoly2, self.botrightpoly1, self.botrightpoly2, self.botpoly1, self.botpoly2,
+                      self.botleftpoly1, self.botleftpoly2, self.leftpoly1, self.leftpoly2, self.topleftpoly1,
+                      self.topleftpoly2, self.front1, self.front2, self.front3, self.front4, self.front5, self.front6,
+                      self.front7, self.front8, self.back1, self.back2, self.back3, self.back4, self.back5, self.back6,
+                      self.back7, self.back8]
+        self.pointcloud = [self.face11, self.face12, self.face13, self.face14, self.face15, self.face16, self.face17,
+                           self.face18, self.face1c, self.face21, self.face22, self.face23, self.face24, self.face25,
+                           self.face26, self.face27, self.face28, self.face2c, self.center]
+
+        self.selected = False
+
+    def rebuildShape(self):
+        self.face11 = list(self.defaultface11)
+        self.face12 = list(self.defaultface12)
+        self.face13 = list(self.defaultface13)
+        self.face14 = list(self.defaultface14)
+        self.face15 = list(self.defaultface15)
+        self.face16 = list(self.defaultface16)
+        self.face17 = list(self.defaultface17)
+        self.face18 = list(self.defaultface18)
+        self.face1c = list(self.defaultface1c)
+
+        self.face21 = list(self.defaultface21)
+        self.face22 = list(self.defaultface22)
+        self.face23 = list(self.defaultface23)
+        self.face24 = list(self.defaultface24)
+        self.face25 = list(self.defaultface25)
+        self.face26 = list(self.defaultface26)
+        self.face27 = list(self.defaultface27)
+        self.face28 = list(self.defaultface28)
+        self.face2c = list(self.defaultface2c)
+
+        self.toppoly1 = [self.face11, self.face22, self.face12]
+        self.toppoly2 = [self.face11, self.face21, self.face22]
+        self.toprightpoly1 = [self.face12, self.face23, self.face13]
+        self.toprightpoly2 = [self.face12, self.face22, self.face23]
+        self.rightpoly1 = [self.face13, self.face24, self.face14]
+        self.rightpoly2 = [self.face13, self.face23, self.face24]
+        self.botrightpoly1 = [self.face14, self.face25, self.face15]
+        self.botrightpoly2 = [self.face14, self.face24, self.face25]
+        self.botpoly1 = [self.face15, self.face26, self.face16]
+        self.botpoly2 = [self.face15, self.face25, self.face26]
+        self.botleftpoly1 = [self.face16, self.face27, self.face17]
+        self.botleftpoly2 = [self.face16, self.face26, self.face27]
+        self.leftpoly1 = [self.face17, self.face28, self.face18]
+        self.leftpoly2 = [self.face17, self.face27, self.face28]
+        self.topleftpoly1 = [self.face18, self.face21, self.face11]
+        self.topleftpoly2 = [self.face18, self.face28, self.face21]
+
+        self.front1 = [self.face1c, self.face11, self.face12]
+        self.front2 = [self.face1c, self.face12, self.face13]
+        self.front3 = [self.face1c, self.face13, self.face14]
+        self.front4 = [self.face1c, self.face14, self.face15]
+        self.front5 = [self.face1c, self.face15, self.face16]
+        self.front6 = [self.face1c, self.face16, self.face17]
+        self.front7 = [self.face1c, self.face17, self.face18]
+        self.front8 = [self.face1c, self.face18, self.face11]
+
+        self.back1 = [self.face2c, self.face22, self.face21]
+        self.back2 = [self.face2c, self.face23, self.face22]
+        self.back3 = [self.face2c, self.face24, self.face23]
+        self.back4 = [self.face2c, self.face25, self.face24]
+        self.back5 = [self.face2c, self.face26, self.face25]
+        self.back6 = [self.face2c, self.face27, self.face26]
+        self.back7 = [self.face2c, self.face28, self.face27]
+        self.back8 = [self.face2c, self.face21, self.face28]
+
+        self.shape = [self.toppoly1, self.toppoly2, self.toprightpoly1, self.toprightpoly2, self.rightpoly1,
+                      self.rightpoly2, self.botrightpoly1, self.botrightpoly2, self.botpoly1, self.botpoly2,
+                      self.botleftpoly1, self.botleftpoly2, self.leftpoly1, self.leftpoly2, self.topleftpoly1,
+                      self.topleftpoly2, self.front1, self.front2, self.front3, self.front4, self.front5, self.front6,
+                      self.front7, self.front8, self.back1, self.back2, self.back3, self.back4, self.back5, self.back6,
+                      self.back7, self.back8]
+        self.pointcloud = [self.face11, self.face12, self.face13, self.face14, self.face15, self.face16, self.face17,
+                           self.face18, self.face1c, self.face21, self.face22, self.face23, self.face24, self.face25,
+                           self.face26, self.face27, self.face28, self.face2c, self.center]
+
+# ***************************** Create the Objects ***************************
 # Create a box in the middle of the frame
 customCube1 = Box(100, 100, 100, [0,0,0])
 # Create a box offset by -200 in x and 100 in z, and make it longer
@@ -242,10 +373,11 @@ customCube2 = Box(100, 50, 50, [-200, 0, 100])
 customPyramid = Pyramid(100, 150, [200, 0, 100])
 customCube3 = Box(100, 100, 100,[0, 0, 0])
 customPyramid2 = Pyramid(100, 200, [0, 0, 0])
+customTube = Cylinder(200, 50, [0, 0, 100])
 
 
 # This is the main list of objects referenced later to be drawn
-currentObject = [customCube1, customPyramid2]
+currentObject = [customTube]
 # This is the iterator to keep track of which object is selected
 objectNumber = 0
 
