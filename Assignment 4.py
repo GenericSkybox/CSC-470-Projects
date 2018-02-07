@@ -19,6 +19,7 @@ from tkinter import *
 CanvasWidth = 700
 CanvasHeight = 600
 d = 500
+PointLight = [255, 255, 255]
 
 # Here we define the ZBUFFER frame and any global variables used in buttons
 WIREFRAME = False
@@ -990,6 +991,18 @@ def createTable(poly):
     # Finally, we return the ordered table
     return table
 
+# PointLight = [Iar, Iag, Iab]
+# ObjectColor = [Kdr, Kdr, Kdb]
+# LightConstants = [Ir, Ig, Ib]
+
+def diffuseReflection(ObjectColor):
+    LightConstants = [ObjectColor[0] * PointLight[0], ObjectColor[1] * PointLight[1], ObjectColor[2] * PointLight[2]]
+
+    diffuseReflectionR = ambientR + emittedR
+    diffuseReflectionG = ambientG + emittedG
+    diffuseReflectionB = ambientB + emmitedB
+
+    return [diffuseReflectionR, diffuseReflectionG, diffuseReflectionB]
 
 # ***************************** Interface Functions ***************************
 # Everything below this point implements the interface
