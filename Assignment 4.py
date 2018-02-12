@@ -27,7 +27,22 @@ FILLSETTING = 1
 ZBUFFER = []
 MAXDEPTH = 10000
 POLYOCCLUSION = True
+LIGHTINGMODE = 0
+SHADINGMODE = 0
 
+# Lighting Constants
+# L is the lighting vector
+L = [1, 1, -1]
+# Ia is the level of ambient lighting - which is just a percentage for RGB
+Ia = [0.2, 0.2, 0.2]
+# Kd is the constant color of the object - and we'll make it an array of percentages of values from 0 to 255
+Kd = [0, 0, 1]
+# Ip is the level of point lighting - which is a percentage for RGB
+Ip = [0.8, 0.8, 0.8]
+# Ks is the constant of specular reflectivity for the object, given in an array of percentages in RGB
+Ks = [0.2, 0.2, 0.2]
+# V is the view vector
+V = [0, 0, -400]
 
 # ***************************** Initialize Object Classes ***************************
 class Pyramid:
@@ -607,7 +622,7 @@ def drawCurrentObject(object):
 def drawPoly(poly, selected):
     # First we need to cull the backfaces of the object. This is done by running each polygon through the backface
     # culling function and determining whether or not the polygon is facing the camera
-    frontface = backfaceCulling(poly)
+    frontface, normal = backfaceCulling(poly)
 
     # If frontface is true, then we display can display that polygon
     if frontface:
@@ -615,7 +630,7 @@ def drawPoly(poly, selected):
         # it and if the wireframe is turned off
         if FILLSETTING >= 1 and WIREFRAME is False:
             # If both of those are true, then we can fill the polygon
-            scan(poly, selected)
+            scan(poly, selected, normal)
         # Once we done filling (or not), we iterate through the edges of the polygon and draw the lines for it
         for i in range(len(poly)):
             drawLine(poly[i - 1], poly[i], selected)
@@ -699,11 +714,11 @@ def backfaceCulling(poly):
 
     # So if the z component of the surface normal times the screen depth (d) minus the plane offset is greater than
     # zero, the point is on the positive side of the plane.
-    return (C * (-d) - offset) > 0
+    return ((C * (-d) - offset) > 0), [A, B, C]
 
 
 # This function scans the polygon, line by line, and fills it with the appropriate color
-def scan(poly, selected):
+def scan(poly, selected, normal):
     # To begin with, we need to create a table of the polygon's edges that's sorted by the edge's maximum y value
     # The each row in the table is organized as: ymax, ymin, initial x, negative inverse slope, z, and change in z
     table = createTable(poly)
@@ -748,25 +763,19 @@ def scan(poly, selected):
 
                 # We update the value at the zbuffer to be that of the z of the pointer
                 ZBUFFER[math.trunc(pointer[0])][pointer[1]] = pz
+                fillColorPercent = diffuseReflection(normal)
+                fillColor = "#"
 
-                # The farther along X the pointer is, the more white it becomes - this equation figures out the
-                # hexadecimal color of the point based on where the point is and its relation to the CanvasWidth
-                # We also split the "0x" part of it so we can concatenate the string easily to the rest of the fill
-                # color later
-                fillBlue = hex(round(pointer[0] * (255 / CanvasWidth))).split('x')[-1]
+                for i in range(3):
+                    fillColorHex = hex(fillColorPercent[i]).split('x')[-1]
 
-                # If somehow we get a single digit value for the hexademical, we just add a zero to the front of it
-                if len(fillBlue) < 2:
-                    fillBlue = "0%s" % fillBlue
+                    if len(fillColorHex) < 2:
+                        fillColorHex = "0%s" % fillColorHex
 
-                # Lastly, we make the actual fill color to be 0000 plus whatever the range of blue we have
-                fillColor = "#FFFF%s" % fillBlue
+                    fillColor += fillColorHex
 
-                # This is used to demonstrate zbuffer by making the unselected object blue
-                if not selected:
-                    fillColor = "#0000FF"
             # If the pointer is off the screen, then we change the fill color to be "", which is basically null. This
-            # will prevent the program from crashing and also minorly help boost performance
+            # will prevent the program from crashing and also somewhat help boost performance
             else:
                 fillColor = ""
 
@@ -827,15 +836,16 @@ def scan(poly, selected):
             if 0 < pointer[0] < CanvasWidth and 0 < pointer[1] < CanvasHeight and \
                             pz <= ZBUFFER[math.trunc(pointer[0])][pointer[1]]:
                 ZBUFFER[math.trunc(pointer[0])][pointer[1]] = pz
-                fillBlue = hex(round(pointer[0] * (255 / CanvasWidth))).split('x')[-1]
+                fillColorPercent = diffuseReflection(normal)
+                fillColor = "#"
 
-                if len(fillBlue) < 2:
-                    fillBlue = "0%s" % fillBlue
+                for i in range(3):
+                    fillColorHex = hex(fillColorPercent[i]).split('x')[-1]
 
-                fillColor = "#FFFF%s" % fillBlue
+                    if len(fillColorHex) < 2:
+                        fillColorHex = "0%s" % fillColorHex
 
-                if not selected:
-                    fillColor = "#0000FF"
+                    fillColor += fillColorHex
             else:
                 fillColor = ""
 
@@ -991,18 +1001,27 @@ def createTable(poly):
     # Finally, we return the ordered table
     return table
 
-# PointLight = [Iar, Iag, Iab]
-# ObjectColor = [Kdr, Kdr, Kdb]
-# LightConstants = [Ir, Ig, Ib]
 
-def diffuseReflection(ObjectColor):
-    LightConstants = [ObjectColor[0] * PointLight[0], ObjectColor[1] * PointLight[1], ObjectColor[2] * PointLight[2]]
+def diffuseReflection(normal):
+    intensity = []
 
-    diffuseReflectionR = ambientR + emittedR
-    diffuseReflectionG = ambientG + emittedG
-    diffuseReflectionB = ambientB + emmitedB
+    sqrtN = (normal[0]**2 + normal[1]**2 + normal[2]**2)**(1.0/2)
+    Nnormal = [normal[0]/sqrtN, normal[1]/sqrtN, normal[2]/sqrtN]
 
-    return [diffuseReflectionR, diffuseReflectionG, diffuseReflectionB]
+    sqrtL = (L[0] ** 2 + L[1] ** 2 + L[2] ** 2) ** (1.0 / 2)
+    Lnormal = [L[0] / sqrtL, L[1] / sqrtL, L[2] / sqrtL]
+
+    NdotL = Nnormal[0] * Lnormal[0] + Nnormal[1] * Lnormal[1] + Nnormal[2] * Lnormal[2]
+
+    for i in range(3):
+        colorIntensity = Ia[i] * Kd[i]
+        if LIGHTINGMODE > 0:
+            colorIntensity += (Ip[i] * Kd[i] * NdotL)
+
+        intensity.append(round(colorIntensity * 255))
+
+    #print(str(intensity[0]) + " " + str(intensity[1]) + " " + str(intensity[2]))
+    return intensity
 
 # ***************************** Interface Functions ***************************
 # Everything below this point implements the interface
@@ -1157,6 +1176,44 @@ def polygonOcclusion():
 
     drawAllObjects()
 
+# Change Lighting Setting Call
+def changeLighting():
+    global LIGHTINGMODE
+
+    w.delete(ALL)
+
+    if LIGHTINGMODE == 0:
+        LIGHTINGMODE = 1
+    elif LIGHTINGMODE == 1:
+        LIGHTINGMODE = 2
+    else:
+        LIGHTINGMODE = 0
+
+    lighting_button_text.set("Setting is: %d" % LIGHTINGMODE)
+
+    print("changeLighting stub executed")
+
+    drawAllObjects()
+
+# Change Shading Setting Call
+def changeShading():
+    global SHADINGMODE
+
+    w.delete(ALL)
+
+    if SHADINGMODE == 0:
+        SHADINGMODE = 1
+    elif SHADINGMODE == 1:
+        SHADINGMODE = 2
+    else:
+        SHADINGMODE = 0
+
+    shading_button_text.set("Setting is: %d" % SHADINGMODE)
+
+    print("changeLighting stub executed")
+
+    drawAllObjects()
+
 
 # ***************************** Interface and Window Construction ***************************
 # Here we actually construct the base of the interface with tkinter
@@ -1177,6 +1234,10 @@ fill_button_text = StringVar()
 fill_button_text.set("Setting is: %d" % FILLSETTING)
 occlusion_button_text = StringVar()
 occlusion_button_text.set("Occlusion is ON")
+lighting_button_text = StringVar()
+lighting_button_text.set("Setting is: %d" % LIGHTINGMODE)
+shading_button_text = StringVar()
+shading_button_text.set("Setting is: %d" % SHADINGMODE)
 
 # So before we set up all of the buttons and labels, we need to make the control panel for them
 controlpanel = Frame(outerframe)
@@ -1297,6 +1358,26 @@ polyocclusioncontrolslabel.pack()
 
 polyocclusionButton = Button(polyocclusioncontrols, textvariable=occlusion_button_text, command=polygonOcclusion)
 polyocclusionButton.pack()
+
+# Lighting Setting Button Block
+lightingsettingcontrols = Frame(controlpanel, borderwidth=2, relief=RIDGE)
+lightingsettingcontrols.pack(side=LEFT)
+
+lightingsettingcontrolslabel = Label(lightingsettingcontrols, text="Lighting Mode")
+lightingsettingcontrolslabel.pack()
+
+lightingsettingButton = Button(lightingsettingcontrols, textvariable=lighting_button_text, command=changeLighting)
+lightingsettingButton.pack()
+
+# Shading Setting Button Block
+shadingsettingcontrols = Frame(controlpanel, borderwidth=2, relief=RIDGE)
+shadingsettingcontrols.pack(side=LEFT)
+
+shadingsettingcontrolslabel = Label(shadingsettingcontrols, text="Shading Mode")
+shadingsettingcontrolslabel.pack()
+
+shadingsettingButton = Button(shadingsettingcontrols, textvariable=shading_button_text, command=changeShading)
+shadingsettingButton.pack()
 
 # Loop the window
 root.mainloop()
