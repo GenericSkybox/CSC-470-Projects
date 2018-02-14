@@ -779,9 +779,6 @@ def scan(poly, polynum, object):
                 else:
                     dn2.append((table[1][7][pos] - table[0][7][pos]) / table[1][6])
 
-        #print(str(table[0][7]) + " " + str(table[1][7]) + " " + str(table[1][1] - table[0][1]))
-        #print(str(di))
-
         if SHADINGMODE == 1:
             iHorLeft = list(map(sub, table[0][8], di1))
             iHorRight = list(map(sub, table[1][8], di2))
@@ -959,8 +956,6 @@ def scan(poly, polynum, object):
                 else:
                     dn2.append((table[1][7][pos] - table[0][7][pos]) / table[1][6])
 
-        #print(str(table[0][7]) + " " + str(table[1][7]) + " " + str(table[1][1] - table[0][1]))
-        #print(str(di))
 
         if SHADINGMODE == 1:
             iHorLeft = list(map(sub, table[0][8], di1))
