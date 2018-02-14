@@ -759,6 +759,7 @@ def scan(poly, polynum, object):
     # maximum y of the first edge in the table
     pointer = [table[0][2], table[0][0]]
 
+    # If we're just using Lambert shading, then we can just calculate the normal as the normal of the whole polygon
     normal = getVertexNormals(poly, polynum, object)
 
     # So long as the pointer is above the minimum value of y of the two edges that we are scanning between, we will
@@ -769,11 +770,12 @@ def scan(poly, polynum, object):
         zHorLeft = table[0][4] - table[0][5]
         zHorRight = table[1][4] - table[1][5]
 
-
+        # If we're doing Gouraud shading, then we also need to start our bilinear interpolation of the intensities
         if SHADINGMODE == 1:
             iHorLeft = list(map(sub, table[0][8], table[0][9]))
             iHorRight = list(map(sub, table[1][8], table[1][9]))
 
+        # If we're doing Phong shading, then we need to start our bilinear interpolation of the normals instead
         if SHADINGMODE == 2:
             dHorLeft = list(map(sub, table[0][6], table[0][7]))
             dHorRight = list(map(sub, table[1][6], table[1][7]))
@@ -784,6 +786,7 @@ def scan(poly, polynum, object):
         if math.trunc(table[1][2]-table[0][2]) == 0:
             zVertConst = 0
 
+            # For Gouraud and Phong shading, the vertical constants are vectors, so we set them both to [0, 0, 0]
             if SHADINGMODE == 1:
                 iVertConst = [0, 0, 0]
 
@@ -792,11 +795,13 @@ def scan(poly, polynum, object):
         else:
             zVertConst = (zHorRight - zHorLeft)/(table[1][2]-table[0][2])
 
+            # Gouraud intensity vertical constant calcuation
             if SHADINGMODE == 1:
                 iVertConst = []
                 for pos in range(3):
                     iVertConst.append((iHorRight[pos] - iHorLeft[pos]) / (table[1][2] - table[0][2]))
 
+            # Phong intensity vertical constant calcuation
             if SHADINGMODE == 2:
                 dVertConst = []
                 for pos in range(3):
@@ -805,9 +810,11 @@ def scan(poly, polynum, object):
         # To get us started, we set the vertical iterator to left edge's horizontal z
         zVert = zHorLeft
 
+        # Set it up for Gouraud
         if SHADINGMODE == 1:
             iVert = iHorLeft
 
+        # Set it up for Phong
         if SHADINGMODE == 2:
             dVert = dHorLeft
 
@@ -817,9 +824,11 @@ def scan(poly, polynum, object):
             # already at that spot
             pz = zVert + zVertConst
 
+            # For Gouraud, our "pz" is going to be our intensity value instead, which requires vector addition
             if SHADINGMODE == 1:
                 intensity = list(map(add, iVert, iVertConst))
 
+            # For Phong, our "pz" is going to be curnormal, which then needs to be used to calculate the intensity
             if SHADINGMODE == 2:
                 curnormal = list(map(add, dVert, dVertConst))
                 intensity = computeReflection(curnormal)
@@ -836,22 +845,34 @@ def scan(poly, polynum, object):
 
                 # We update the value at the zbuffer to be that of the z of the pointer
                 ZBUFFER[math.trunc(pointer[0])][pointer[1]] = pz
+
+                # If we're using Gouraud or Phong shading, we need to create the color of the object based on the
+                # intensity vector we calculated earlier
                 if SHADINGMODE > 0:
                     for i in range(3):
                         intensity[i] = round(intensity[i])
+
                     fillColorPercent = intensity
+                # Otherwise, just used the polygon's normal for the lighting model calculations and grab the intensity
+                # that way
                 else:
                     fillColorPercent = computeReflection(normal[0])
+
+                # Set up fillColor with a # so it can be used as a color
                 fillColor = "#"
 
+                # Iterate through the fillColorPercent and create a hex value out of each position
                 for i in range(3):
                     fillColorHex = hex(fillColorPercent[i]).split('x')[-1]
 
+                    # If the hex value is not two digits, then add a zero to the beginning
                     if len(fillColorHex) < 2:
                         fillColorHex = "0%s" % fillColorHex
+                    # Or if the hex value is too big, just make the object full of that color
                     elif len(fillColorHex) > 2:
                         fillColorHex = "FF"
 
+                    # Finally add the strings of hex code to the actual fillColor
                     fillColor += fillColorHex
 
             # If the pointer is off the screen, then we change the fill color to be "", which is basically null. This
@@ -865,24 +886,27 @@ def scan(poly, polynum, object):
             # We update the zVert iterator to be that of the z of the pointer
             zVert = pz
 
+            # With Gouraud shading, we also update the iVert iterator
             if SHADINGMODE == 1:
                 iVert = intensity
 
+            # With Phong shading, we also update the dVert iterator
             if SHADINGMODE == 2:
                 dVert = curnormal
             # Lastly for this row, we increment the pointer along the x axis
             pointer[0] += 1
 
+        # Once we're done with iterating through the row, we update the initial z for both edges to be that of the left
+        # and right horizonal z's respectively
+        table[0][4] = zHorLeft
+        table[1][4] = zHorRight
+        # We update the edges accordingly for Gouraud and Phong shading
         if SHADINGMODE == 1:
             table[0][8] = iHorLeft
             table[1][8] = iHorRight
         if SHADINGMODE == 2:
             table[0][6] = dHorLeft
             table[1][6] = dHorRight
-        # Once we're done with iterating through the row, we update the initial z for both edges to be that of the left
-        # and right horizonal z's respectively
-        table[0][4] = zHorLeft
-        table[1][4] = zHorRight
         # We then increment the initial x values of both edges by their negative inverse slopes
         table[0][2] += table[0][3]
         table[1][2] += table[1][3]
@@ -999,21 +1023,23 @@ def scan(poly, polynum, object):
 
             pointer[0] += 1
 
+        table[0][4] = zHorLeft
+        table[1][4] = zHorRight
         if SHADINGMODE == 1:
             table[0][8] = iHorLeft
             table[1][8] = iHorRight
         if SHADINGMODE == 2:
             table[0][6] = dHorLeft
             table[1][6] = dHorRight
-        table[0][4] = zHorLeft
-        table[1][4] = zHorRight
         table[0][2] += table[0][3]
         table[1][2] += table[1][3]
         pointer[0] = table[0][2]
         pointer[1] -= 1
 
 
+# This function determines the normal vector of each point in a given polygon of a cylinder
 def getVertexNormals(poly, polynum, object):
+    # First we calculate the normal of whatever polygon we're already given
     p0 = poly[0]
     p1 = poly[1]
     p2 = poly[2]
@@ -1022,21 +1048,28 @@ def getVertexNormals(poly, polynum, object):
     B = -((p1[0] - p0[0]) * (p2[2] - p0[2]) - (p2[0] - p0[0]) * (p1[2] - p0[2]))
     C = ((p1[0] - p0[0]) * (p2[1] - p0[1]) - (p2[0] - p0[0]) * (p1[1] - p0[1]))
 
+    # Then we normalize it
     sqrtMain = math.sqrt(A ** 2 + B ** 2 + C ** 2)
     mainNormal = [round((A / sqrtMain), 8), round((B / sqrtMain), 8), round((C / sqrtMain), 8)]
 
+    # If the object is indeed a cylinder, and if the polygon pertains to the sides of the cylinder, then we'll start
+    # setting up the vertex normals
     if 0 <= polynum <= 15 and object.tag is "cylinder":
+        # We intialize the sum of normals list to return once we're done with calculating the normals for each point
         sumNormals = []
 
+        # For each point in the given polygon, we set the current normals for the point to start with the normal that
+        # we calculated just a minute ago
         for currPoint in poly:
             currNormals = [mainNormal]
-            print(str(currPoint))
 
+            # Now we iterate through the entire list of polygons that make up the sides of the cylinder
             for i in range(16):
+                # We set whatever polygon we're on to currPoly, and check to see if our point is in that polygon
                 currPoly = object.shape[i]
-                print(str(currNormals))
 
                 if currPoint in currPoly:
+                    # If our point is indeed in that polygon, we calculate the normal of that polygon too
                     p0 = currPoly[0]
                     p1 = currPoly[1]
                     p2 = currPoly[2]
@@ -1048,17 +1081,20 @@ def getVertexNormals(poly, polynum, object):
                     sqrtCurr = math.sqrt(A ** 2 + B ** 2 + C ** 2)
                     currPolyNormal = [round((A / sqrtCurr), 8), round((B / sqrtCurr), 8), round((C / sqrtCurr), 8)]
 
+                    # If that normal isn't already in our list of normals for this point, then we add to the list
                     if not currPolyNormal in currNormals:
                         currNormals.append(currPolyNormal)
 
+            # Once we have our list of normals for our point, we need to sum them together and add it to our sumNormals
+            # list - otherwise, we just add whatever's left in the list of normals to the sumNormals
             if len(currNormals) == 2:
                 sumNormals.append(list(map(add, currNormals[0], currNormals[1])))
             else:
                 sumNormals.append(currNormals)
-
-        #print(str(sumNormals))
+        # After going through all of the points of our passed-in polygon, we return the sum of those normals
         return sumNormals
     else:
+        # If the object doesn't require vertex normals, we'll just return a list of the polygon's base normal
         return [mainNormal, mainNormal, mainNormal]
 
 # This function creates a table where each row represents the edge of the triangular polygon passed in. Each row
@@ -1076,13 +1112,15 @@ def createTable(poly, vertexNormals):
 
     # Out of the new vertices, we create 3 edges, which correspond to the ones initialized in the polygon passed in
     edgeList = [[vertices[0], vertices[1]], [vertices[1], vertices[2]], [vertices[2], vertices[0]]]
+    # We also make a parallel array of normals that match our vertices
     normalList = [[vertexNormals[0], vertexNormals[1]], [vertexNormals[1], vertexNormals[2]], [vertexNormals[2], vertexNormals[0]]]
 
-    # For each edge, we determine its ymax, ymin, initial x, negative inverse slope, z, and dz before adding those
-    # values to its corresponding row
+    # For each edge, we determine its ymax, ymin, initial x, negative inverse slope, z, dz, n, dn, i, and di
+    # before adding those values to its corresponding row
     for i in range(len(edgeList)):
         # First we grab an edge and check to see which of its two points has the higher y value
         edge = edgeList[i]
+        # We also grab a normal
         normal = normalList[i]
 
         if edge[0][1] >= edge[1][1]:
@@ -1102,9 +1140,11 @@ def createTable(poly, vertexNormals):
             z1 = edge[0][2]
             z2 = edge[1][2]
 
+            # We also need to grab the appropriate normals
             n1 = normal[0]
             n2 = normal[1]
 
+            # And the appropriate intensities based off of those normals
             i1 = computeReflection(normal[0])
             i2 = computeReflection(normal[1])
         else:
@@ -1123,18 +1163,20 @@ def createTable(poly, vertexNormals):
             i2 = computeReflection(normal[0])
             i1 = computeReflection(normal[1])
 
-        # If the edge is a horizontal line, then we need to set the negative inverse slope and change in z to 0
+        # If the edge is a horizontal line, then we need to set the negative inverse slope, change in z, change in
+        # normals, and change in intensities to 0
         if ymax - ymin == 0:
             dx = 0.0
             dz = 0.0
             dn = [0.0, 0.0, 0.0]
             di = [0.0, 0.0, 0.0]
-        # Otherwise, compute dx and dz as normal
+        # Otherwise, compute dx, dz, dn, and di as normal
         else:
             dx = -((x1 - x2) / (ymax - ymin))
             dz = (z2 - z1) / (ymin - ymax)
             dn =[]
             di = []
+            # dn and di are vectors need to be computed once for each component
             for comp in range(3):
                 dn.append((n2[comp] - n1[comp]) / (ymin - ymax))
                 di.append((i2[comp] - i1[comp]) / (ymin - ymax))
