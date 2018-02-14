@@ -31,7 +31,7 @@ POLYOCCLUSION = True
 LIGHTINGMODE = 0
 SHADINGMODE = 0
 
-# Lighting Constants
+# Lighting and Shading Constants
 # L is the lighting vector
 L = [1, 1, -1]
 # Ia is the level of ambient lighting - which is just a percentage for RGB
@@ -55,8 +55,9 @@ class Pyramid:
         self.height = height
         self.base = base
         self.center = center
-        # Tag its name
+        # Tag its name and set its selection to false
         self.tag = "pyramid"
+        self.selected = False
 
         # Rename the variables so that they are easier to manage in point calculation
         c = list(self.center)
@@ -89,12 +90,9 @@ class Pyramid:
         self.bottompoly1 = [self.base2, self.base3, self.base1]
         self.bottompoly2 = [self.base4, self.base1, self.base3]
 
-        # We then create the shape and the object's pointcloud, which contains all of the points of the object
+        # Lastly, we create the shape and the object's pointcloud, which contains all of the points of the object
         self.shape = [self.bottompoly1, self.bottompoly2, self.frontpoly, self.rightpoly, self.backpoly, self.leftpoly]
         self.pointcloud = [self.apex, self.base1, self.base2, self.base3, self.base4, self.center]
-
-        # Lastly, we set the object to not be selected
-        self.selected = False
 
     # This function is solely used to reset the object to its original position
     def rebuildShape(self):
@@ -129,8 +127,9 @@ class Box:
         self.length = length
         self.depth = depth
         self.center = center
-        # Tag its name
+        # Tag its name and set its selection to false
         self.tag = "box"
+        self.selected = False
 
         # Rename the variables so that they are easier to manage in point calculation
         c = list(self.center)
@@ -177,15 +176,12 @@ class Box:
         self.defaultbase8 = list(self.base8)
         self.defaultcenter = list(self.center)
 
-        # We then create the shape and the object's pointcloud, which contains all of the points of the object
+        # Lastly, we create the shape and the object's pointcloud, which contains all of the points of the object
         self.shape = [self.frontpoly1, self.frontpoly2, self.backpoly1, self.backpoly2, self.leftpoly1, self.leftpoly2,
                       self.rightpoly1, self.rightpoly2, self.bottompoly1, self.bottompoly2, self.toppoly1,
                       self.toppoly2]
         self.pointcloud = [self.base1, self.base2, self.base3, self.base4, self.base5, self.base6, self.base7,
                            self.base8, self.center]
-
-        # Lastly, we set the object to not be selected
-        self.selected = False
 
     def rebuildShape(self):
         # Set the object's points to the value of the previously stored default ones by using the list() function.
@@ -224,18 +220,25 @@ class Box:
     # End Box Class
 
 class Cylinder:
+    # The default constructor accepts a length, radius, and center of the cylinder
     def __init__(self, length=100, radius=25, center=[0, 0, 0]):
+        # Create the length, radius, and center of the cylinder based on the passed in parameters
         self.length = length
         self.radius = radius
         self.center = center
-        # Tag its name
+        # Tag its name and set its selection to false
         self.tag = "cylinder"
+        self.selected = False
 
+        # Rename the variables so that they are easier to manage in point calculation
         c = list(self.center)
         l = self.length
         r = self.radius
         T = math.radians(22.5)
 
+        # Calculate the vertices of the object based on the the length, radius, and center.
+        # Naming convention goes: start from the upper left corner of the octagonal face and move around it clockwise
+        # This is the front cap points
         self.face11 = list(map(add, c, [-math.tan(T)*r, r, -l / 2]))
         self.face12 = list(map(add, c, [math.tan(T)*r, r, -l / 2]))
         self.face13 = list(map(add, c, [r, math.tan(T)*r, -l / 2]))
@@ -246,6 +249,7 @@ class Cylinder:
         self.face18 = list(map(add, c, [-r, math.tan(T)*r, -l / 2]))
         self.face1c = list(map(add, c, [0, 0, -l / 2]))
 
+        # This is the back cap points
         self.face21 = list(map(add, c, [-math.tan(T)*r, r, l / 2]))
         self.face22 = list(map(add, c, [math.tan(T)*r, r, l / 2]))
         self.face23 = list(map(add, c, [r, math.tan(T)*r, l / 2]))
@@ -256,6 +260,9 @@ class Cylinder:
         self.face28 = list(map(add, c, [-r, math.tan(T)*r, l / 2]))
         self.face2c = list(map(add, c, [0, 0, l / 2]))
 
+        # Once the vertices are created, we make the polygons of the box. Since the object is rectangular, then every
+        # face of it has two polygons - which are just two triangles
+        # The naming convention is fairly self-explanatory, with two polygons making every face of the octagonal prism
         self.toppoly2 = [self.face11, self.face22, self.face12]
         self.toppoly1 = [self.face11, self.face21, self.face22]
         self.toprightpoly2 = [self.face12, self.face23, self.face13]
@@ -273,6 +280,7 @@ class Cylinder:
         self.topleftpoly2 = [self.face18, self.face21, self.face11]
         self.topleftpoly1 = [self.face18, self.face28, self.face21]
 
+        # The front and back caps are just made of eight triangles that point to the center point of each cap
         self.front1 = [self.face1c, self.face11, self.face12]
         self.front2 = [self.face1c, self.face12, self.face13]
         self.front3 = [self.face1c, self.face13, self.face14]
@@ -291,6 +299,7 @@ class Cylinder:
         self.back7 = [self.face2c, self.face28, self.face27]
         self.back8 = [self.face2c, self.face21, self.face28]
 
+        # Pass in the points by value to these default points to be used in the reset function
         self.defaultface11 = list(self.face11)
         self.defaultface12 = list(self.face12)
         self.defaultface13 = list(self.face13)
@@ -311,6 +320,11 @@ class Cylinder:
         self.defaultface28 = list(self.face28)
         self.defaultface2c = list(self.face2c)
 
+        self.defaultcenter = list(self.center)
+
+        # We then create the shape and the object's pointcloud, which contains all of the points of the object
+        # The first 16 polygons (from 0 to 15) are part of the sides of the cylinder, while the rest belong to the caps
+        # of the cylinder. This exploit is used later in the shading computations
         self.shape = [self.toppoly1, self.toppoly2, self.toprightpoly1, self.toprightpoly2, self.rightpoly1,
                       self.rightpoly2, self.botrightpoly1, self.botrightpoly2, self.botpoly1, self.botpoly2,
                       self.botleftpoly1, self.botleftpoly2, self.leftpoly1, self.leftpoly2, self.topleftpoly1,
@@ -321,9 +335,9 @@ class Cylinder:
                            self.face18, self.face1c, self.face21, self.face22, self.face23, self.face24, self.face25,
                            self.face26, self.face27, self.face28, self.face2c, self.center]
 
-        self.selected = False
-
     def rebuildShape(self):
+        # Set the object's points to the value of the previously stored default ones by using the list() function.
+        # That prevents the default vertices from being "tied" to these vertices which will be changed constantly.
         self.face11 = list(self.defaultface11)
         self.face12 = list(self.defaultface12)
         self.face13 = list(self.defaultface13)
@@ -344,6 +358,10 @@ class Cylinder:
         self.face28 = list(self.defaultface28)
         self.face2c = list(self.defaultface2c)
 
+        # Also reset the center
+        self.center = list(self.defaultcenter)
+
+        # Now we just rebuild the polygons, the shape, and the pointcloud
         self.toppoly2 = [self.face11, self.face22, self.face12]
         self.toppoly1 = [self.face11, self.face21, self.face22]
         self.toprightpoly2 = [self.face12, self.face23, self.face13]
@@ -388,6 +406,8 @@ class Cylinder:
         self.pointcloud = [self.face11, self.face12, self.face13, self.face14, self.face15, self.face16, self.face17,
                            self.face18, self.face1c, self.face21, self.face22, self.face23, self.face24, self.face25,
                            self.face26, self.face27, self.face28, self.face2c, self.center]
+
+    # End of Cylinder Class
 
 # ***************************** Create the Objects ***************************
 # Create a box in the middle of the frame
@@ -729,9 +749,11 @@ def backfaceCulling(poly):
 
 # This function scans the polygon, line by line, and fills it with the appropriate color
 def scan(poly, polynum, object):
+    # Before we set up the tables, we need to generate the vertex normals of each vertex in our polygon
     vertexNormals = getVertexNormals(poly, polynum, object)
-    # To begin with, we need to create a table of the polygon's edges that's sorted by the edge's maximum y value
-    # The each row in the table is organized as: ymax, ymin, initial x, negative inverse slope, z, and change in z
+    # We then need to create a table of the polygon's edges that's sorted by the edge's maximum y value
+    # The each row in the table is organized as: ymax, ymin, initial x, negative inverse slope, z, change in z, normal,
+    # change in normal, intensity, and change in intensity
     table = createTable(poly, vertexNormals)
     # Once the sorted table is made, we set a pointer to the top of the polygon, which should be the initial x and the
     # maximum y of the first edge in the table
