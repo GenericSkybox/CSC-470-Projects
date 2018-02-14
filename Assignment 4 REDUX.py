@@ -1264,45 +1264,65 @@ def createTable(poly, vertexNormals):
     return table
 
 
+# This function returns the intensity of light at a point, given its normal vector
 def computeReflection(normal):
+    # We'll eventually return an intensity, so let's set it up at the beginning
     intensity = []
 
+    # Normalize the normal (in case it isn't normal)
     sqrtN = (normal[0]**2 + normal[1]**2 + normal[2]**2)**(1.0/2)
     Nnormal = [normal[0]/sqrtN, normal[1]/sqrtN, normal[2]/sqrtN]
 
+    # Normalize the lighting vector
     sqrtL = (L[0] ** 2 + L[1] ** 2 + L[2] ** 2) ** (1.0 / 2)
     Lnormal = [L[0] / sqrtL, L[1] / sqrtL, L[2] / sqrtL]
 
+    # Find the dot product of the two normalized vectors
     NdotL = Nnormal[0] * Lnormal[0] + Nnormal[1] * Lnormal[1] + Nnormal[2] * Lnormal[2]
 
+    # For each component of the intensity (RGB), we need to calculate the ambient, emitted, and specular reflection of
+    # the point - depending on the lighting mode
     for i in range(3):
+        # We start with calculating the ambient diffuse reflection (for this color)
         colorIntensity = Ia[i] * Kd[i]
 
+        # If we're doing more than ambient, then we need to calculate the emitted diffuse reflection next (and add it to
+        # the other intensity we just found)
         if LIGHTINGMODE > 0:
             colorIntensity += (Ip[i] * Kd[i] * NdotL)
 
+            # If we're doing specular reflection too, then we need to determine the reflection vector
             if LIGHTINGMODE > 1:
                 R = computeR(Nnormal, Lnormal, NdotL)
 
+                # Then we normalize the reflection vector
                 sqrtR = (R[0] ** 2 + R[1] ** 2 + R[2] ** 2) ** (1.0 / 2)
                 Rnormal = [R[0] / sqrtR, R[1] / sqrtR, R[2] / sqrtR]
 
+                # And normalize the viewing vector
                 sqrtV = (V[0] ** 2 + V[1] ** 2 + V[2] ** 2) ** (1.0 / 2)
                 Vnormal = [V[0] / sqrtV, V[1] / sqrtV, V[2] / sqrtV]
 
+                # Find the dot product of them both
                 VdotR = Vnormal[0] * Rnormal[0] + Vnormal[1] * Rnormal[1] + Vnormal[2] * Rnormal[2]
 
+                # And finally calculate the intensity of the specular reflection
                 colorIntensity += Ip[i] * Ks[i] * (VdotR ** N)
 
+        # At the end of it all, we add the final color intensity to the list of color intensities for the point
         intensity.append(round(colorIntensity * 255))
 
+    # Finally return the intensity list of the point
     return intensity
 
 
+# This function computes the reflection vector
 def computeR(Nnormal, Lnormal, NdotL):
+    # Let's just go ahead and intialize R and compute 2 * theta(phi)
     R = []
     tcphi = 2 * NdotL
 
+    # Determine R based off of the value of 2 * theta(phi)
     if tcphi > 0:
         for i in range(3):
             R.append(Nnormal[i] - Lnormal[i] / tcphi)
@@ -1315,6 +1335,7 @@ def computeR(Nnormal, Lnormal, NdotL):
         for i in range(3):
             R.append(-Nnormal[i] + Lnormal[i] / tcphi)
 
+    # Return R (I'm done)
     return R
 
 # ***************************** Interface Functions ***************************
