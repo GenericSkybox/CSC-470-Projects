@@ -19,11 +19,10 @@ from tkinter import *
 CanvasWidth = 700
 CanvasHeight = 600
 d = 500
-PointLight = [255, 255, 255]
 
 # Here we define the ZBUFFER frame and any global variables used in buttons
 WIREFRAME = False
-FILLSETTING = 1
+FILLSETTING = 2
 ZBUFFER = []
 MAXDEPTH = 10000
 POLYOCCLUSION = True
@@ -44,7 +43,7 @@ Ks = [0.8, 0.8, 0.8]
 # V is the view vector
 V = [0, 0, -100]
 # N is shininess of the surface
-N = 140
+N = 10
 
 # ***************************** Initialize Object Classes ***************************
 class Pyramid:
@@ -734,8 +733,13 @@ def scan(poly, polynum, object):
     # maximum y of the first edge in the table
     pointer = [table[0][2], table[0][0]]
 
+    table[0].append(computeVertexNormals(poly, polynum, object, 0))
+    table[0].append(computeReflection(table[0][7]))
+    table[1].append(computeVertexNormals(poly, polynum, object, 1))
+    table[1].append(computeReflection(table[1][7]))
 
-    normal = calculateNormal(poly, polynum, object)
+
+    normal = computeVertexNormals(poly, polynum, object, 0)
 
     # So long as the pointer is above the minimum value of y of the two edges that we are scanning between, we will
     # continue to fill the polygon
@@ -745,26 +749,46 @@ def scan(poly, polynum, object):
         zHorLeft = table[0][4] - table[0][5]
         zHorRight = table[1][4] - table[1][5]
 
-        di = []
+        if SHADINGMODE == 1:
+            di1 = []
+            di2 = []
 
-        for pos in range(3):
-            if table[1][1] - table[0][1] == 0:
-                di.append(0)
-            else:
-                di.append((table[1][7][pos] - table[0][7][pos]) / (table[1][1] - table[0][1]))
+            for pos in range(3):
+                if table[0][6] == 0:
+                    di1.append(0)
+                else:
+                    di1.append((table[1][8][pos] - table[0][8][pos]) / table[0][6])
 
-        print(str(table[0][7]) + " " + str(table[1][7]) + " " + str(table[1][1] - table[0][1]))
-        print(str(di))
+                if table[1][6] == 0:
+                    di2.append(0)
+                else:
+                    di2.append((table[1][8][pos] - table[0][8][pos]) / table[1][6])
+
+        if SHADINGMODE == 2:
+            dn1 = []
+            dn2 = []
+
+            for pos in range(3):
+                if table[0][6] == 0:
+                    dn1.append(0)
+                else:
+                    dn1.append((table[1][7][pos] - table[0][7][pos]) / table[0][6])
+
+                if table[1][6] == 0:
+                    dn2.append(0)
+                else:
+                    dn2.append((table[1][7][pos] - table[0][7][pos]) / table[1][6])
+
+        #print(str(table[0][7]) + " " + str(table[1][7]) + " " + str(table[1][1] - table[0][1]))
+        #print(str(di))
 
         if SHADINGMODE == 1:
-            iHorLeft = list(map(add, table[0][7], di))
-            iHorRight = list(map(add, table[1][7], di))
+            iHorLeft = list(map(sub, table[0][8], di1))
+            iHorRight = list(map(sub, table[1][8], di2))
 
-        """
         if SHADINGMODE == 2:
-            normalHorLeft
-            normalHorRight
-        """
+            dHorLeft = list(map(sub, table[0][7], dn1))
+            dHorRight = list(map(sub, table[1][7], dn2))
 
         # Then, we have to determine the vertical constant of each point in a line, which is dependent on the left and
         # right edges' horizontal z's and the x initials of the edges
@@ -774,6 +798,9 @@ def scan(poly, polynum, object):
 
             if SHADINGMODE == 1:
                 iVertConst = [0, 0, 0]
+
+            if SHADINGMODE == 2:
+                dVertConst = [0, 0, 0]
         else:
             zVertConst = (zHorRight - zHorLeft)/(table[1][2]-table[0][2])
 
@@ -782,11 +809,19 @@ def scan(poly, polynum, object):
                 for pos in range(3):
                     iVertConst.append((iHorRight[pos] - iHorLeft[pos]) / (table[1][2] - table[0][2]))
 
+            if SHADINGMODE == 2:
+                dVertConst = []
+                for pos in range(3):
+                    dVertConst.append((dHorRight[pos] - dHorLeft[pos]) / (table[1][2] - table[0][2]))
+
         # To get us started, we set the vertical iterator to left edge's horizontal z
         zVert = zHorLeft
 
         if SHADINGMODE == 1:
             iVert = iHorLeft
+
+        if SHADINGMODE == 2:
+            dVert = dHorLeft
 
         # For every line between two edges, we'll work the pointer from the left edge's initial x to the right edge's
         while pointer[0] < table[1][2]:
@@ -796,6 +831,10 @@ def scan(poly, polynum, object):
 
             if SHADINGMODE == 1:
                 intensity = list(map(add, iVert, iVertConst))
+
+            if SHADINGMODE == 2:
+                curnormal = list(map(add, dVert, dVertConst))
+                intensity = computeReflection(curnormal)
 
             # If polyocclusion is turned off, then we just ignore the z buffer basically by make the z value of the
             # pointer to be the same as the value already in the ZBUFFER
@@ -809,12 +848,12 @@ def scan(poly, polynum, object):
 
                 # We update the value at the zbuffer to be that of the z of the pointer
                 ZBUFFER[math.trunc(pointer[0])][pointer[1]] = pz
-                if SHADINGMODE == 1:
+                if SHADINGMODE > 0:
                     for i in range(3):
                         intensity[i] = round(intensity[i])
                     fillColorPercent = intensity
                 else:
-                    fillColorPercent = diffuseReflection(normal)
+                    fillColorPercent = computeReflection(normal)
                 fillColor = "#"
 
                 for i in range(3):
@@ -840,12 +879,18 @@ def scan(poly, polynum, object):
 
             if SHADINGMODE == 1:
                 iVert = intensity
+
+            if SHADINGMODE == 2:
+                dVert = curnormal
             # Lastly for this row, we increment the pointer along the x axis
             pointer[0] += 1
 
         if SHADINGMODE == 1:
-            table[0][7] = iHorLeft
-            table[1][7] = iHorRight
+            table[0][8] = iHorLeft
+            table[1][8] = iHorRight
+        if SHADINGMODE == 2:
+            table[0][7] = dHorLeft
+            table[1][7] = dHorRight
         # Once we're done with iterating through the row, we update the initial z for both edges to be that of the left
         # and right horizonal z's respectively
         table[0][4] = zHorLeft
@@ -871,6 +916,11 @@ def scan(poly, polynum, object):
     if table[0][2] > table[1][2]:
         table[0], table[1] = table[1], table[0]
 
+    table[0].append(computeVertexNormals(poly, polynum, object, 0))
+    table[0].append(computeReflection(table[0][7]))
+    table[1].append(computeVertexNormals(poly, polynum, object, 1))
+    table[1].append(computeReflection(table[1][7]))
+
     # Once we have our two "new" edges situated in the table, we can begin filling the polygon again, moving from left
     # to right
     # Since the ymin values of the last two edges should be the same, we just need to check if we passed one of them
@@ -879,23 +929,55 @@ def scan(poly, polynum, object):
         zHorLeft = table[0][4] - table[0][5]
         zHorRight = table[1][4] - table[1][5]
 
-        di = []
+        if SHADINGMODE == 1:
+            di1 = []
+            di2 = []
 
-        for pos in range(3):
-            if table[1][1] - table[0][1] == 0:
-                di.append(0)
-            else:
-                di.append((table[0][7][pos] - table[1][7][pos]) / (table[0][1] - table[1][1]))
+            for pos in range(3):
+                if table[0][6] == 0:
+                    di1.append(0)
+                else:
+                    di1.append((table[1][8][pos] - table[0][8][pos]) / table[0][6])
+
+                if table[1][6] == 0:
+                    di2.append(0)
+                else:
+                    di2.append((table[1][8][pos] - table[0][8][pos]) / table[1][6])
+
+        if SHADINGMODE == 2:
+            dn1 = []
+            dn2 = []
+
+            for pos in range(3):
+                if table[0][6] == 0:
+                    dn1.append(0)
+                else:
+                    dn1.append((table[1][7][pos] - table[0][7][pos]) / table[0][6])
+
+                if table[1][6] == 0:
+                    dn2.append(0)
+                else:
+                    dn2.append((table[1][7][pos] - table[0][7][pos]) / table[1][6])
+
+        #print(str(table[0][7]) + " " + str(table[1][7]) + " " + str(table[1][1] - table[0][1]))
+        #print(str(di))
 
         if SHADINGMODE == 1:
-            iHorLeft = list(map(add, table[0][7], di))
-            iHorRight = list(map(add, table[1][7], di))
+            iHorLeft = list(map(sub, table[0][8], di1))
+            iHorRight = list(map(sub, table[1][8], di2))
+
+        if SHADINGMODE == 2:
+            dHorLeft = list(map(sub, table[0][7], dn1))
+            dHorRight = list(map(sub, table[1][7], dn2))
 
         if math.trunc(table[1][2]-table[0][2]) == 0:
             zVertConst = 0
 
             if SHADINGMODE == 1:
                 iVertConst = [0, 0, 0]
+
+            if SHADINGMODE == 2:
+                dVertConst = [0, 0, 0]
         else:
             zVertConst = (zHorRight - zHorLeft)/(table[1][2]-table[0][2])
 
@@ -904,18 +986,28 @@ def scan(poly, polynum, object):
                 for pos in range(3):
                     iVertConst.append((iHorRight[pos] - iHorLeft[pos]) / (table[1][2] - table[0][2]))
 
+            if SHADINGMODE == 2:
+                dVertConst = []
+                for pos in range(3):
+                    dVertConst.append((dHorRight[pos] - dHorLeft[pos]) / (table[1][2] - table[0][2]))
 
-        # To get us started, we set the vertical iterator to left edge's horizontal z
         zVert = zHorLeft
 
         if SHADINGMODE == 1:
             iVert = iHorLeft
+
+        if SHADINGMODE == 2:
+            dVert = dHorLeft
 
         while pointer[0] < table[1][2]:
             pz = zVert + zVertConst
 
             if SHADINGMODE == 1:
                 intensity = list(map(add, iVert, iVertConst))
+
+            if SHADINGMODE == 2:
+                curnormal = list(map(add, dVert, dVertConst))
+                intensity = computeReflection(curnormal)
 
             if not POLYOCCLUSION:
                 pz = ZBUFFER[math.trunc(pointer[0])][pointer[1]]
@@ -924,12 +1016,12 @@ def scan(poly, polynum, object):
                             pz <= ZBUFFER[math.trunc(pointer[0])][pointer[1]]:
                 ZBUFFER[math.trunc(pointer[0])][pointer[1]] = pz
 
-                if SHADINGMODE == 1:
+                if SHADINGMODE > 0:
                     for i in range(3):
                         intensity[i] = round(intensity[i])
                     fillColorPercent = intensity
                 else:
-                    fillColorPercent = diffuseReflection(normal)
+                    fillColorPercent = computeReflection(normal)
 
                 fillColor = "#"
 
@@ -952,11 +1044,17 @@ def scan(poly, polynum, object):
             if SHADINGMODE == 1:
                 iVert = intensity
 
+            if SHADINGMODE == 2:
+                dVert = curnormal
+
             pointer[0] += 1
 
         if SHADINGMODE == 1:
-            table[0][7] = iHorLeft
-            table[1][7] = iHorRight
+            table[0][8] = iHorLeft
+            table[1][8] = iHorRight
+        if SHADINGMODE == 2:
+            table[0][7] = dHorLeft
+            table[1][7] = dHorRight
         table[0][4] = zHorLeft
         table[1][4] = zHorRight
         table[0][2] += table[0][3]
@@ -1022,24 +1120,28 @@ def createTable(poly, polynum, object):
             dx = -((x1 - x2) / (ymax - ymin))
             dz = (z2 - z1) / (ymin - ymax)
 
+        ydiff = ymin - ymax
 
+        """
         if (polynum % 2 == 0 and i < 2) or (polynum % 2 == 1 and i == 0):
-            normal = computeVertexNormals(poly, polynum, object)
+            normal = computeVertexNormals(poly, polynum, object, 0)
         elif polynum == 15 and i > 0:
-            normal = computeVertexNormals(poly, 0, object)
+            normal = computeVertexNormals(poly, 0, object, 1)
         else:
-            normal = computeVertexNormals(poly, polynum + 1, object)
+            normal = computeVertexNormals(poly, polynum + 1, object, 1)
+            
 
-        intensity = diffuseReflection(normal)
+        intensity = computeReflection(normal)
+        """
         #print(str(intensity))
 
         # Then we create the rows based on which edge is being evaluated
         if i == 0:
-            rowOne = [ymax, ymin, x1, dx, z1, dz, normal, intensity, x2]
+            rowOne = [ymax, ymin, x1, dx, z1, dz, ydiff]
         elif i == 1:
-            rowTwo = [ymax, ymin, x1, dx, z1, dz, normal, intensity, x2]
+            rowTwo = [ymax, ymin, x1, dx, z1, dz, ydiff]
         else:
-            rowThree = [ymax, ymin, x1, dx, z1, dz, normal, intensity, x2]
+            rowThree = [ymax, ymin, x1, dx, z1, dz, ydiff]
 
     # Once we're done creating the rows, we need to order the edges in the table by their ymax and then their initial x
     # This is done be checking which two edges share the same ymax - since this would imply those two edges have the
@@ -1116,7 +1218,7 @@ def createTable(poly, polynum, object):
     return table
 
 
-def calculateNormal(poly, polynum, object):
+def computeVertexNormals(poly, polynum, object, side):
     p0 = poly[0]
     p1 = poly[1]
     p2 = poly[2]
@@ -1127,52 +1229,84 @@ def calculateNormal(poly, polynum, object):
 
     polynormal = [A, B, C]
 
-    if SHADINGMODE == 2 and object.tag is "cylinder":
-        return polynormal
-    elif SHADINGMODE == 1 and object.tag is "cylinder" and 0 <= polynum <= 15:
+    if object.tag is "cylinder" and 0 <= polynum <= 15 and SHADINGMODE > 0:
         polyprev = polynum - 1
+        polyprevprev = polynum - 2
         polynext = polynum + 1
+        polynextnext = polynum + 2
 
         if polynum == 0:
             polyprev = 15
+            polyprevprev = 14
         elif polynum == 15:
             polynext = 0
+            polynextnext = 1
 
-        prevpoly = object.shape[polyprev]
-        prev0 = prevpoly[0]
-        prev1 = prevpoly[1]
-        prev2 = prevpoly[2]
+        if side == 0:
+            prevpoly = object.shape[polyprev]
+            prev0 = prevpoly[0]
+            prev1 = prevpoly[1]
+            prev2 = prevpoly[2]
 
-        D = ((prev1[1] - prev0[1]) * (prev2[2] - prev0[2]) - (prev2[1] - prev0[1]) * (prev1[2] - prev0[2]))
-        E = -((prev1[0] - prev0[0]) * (prev2[2] - prev0[2]) - (prev2[0] - prev0[0]) * (prev1[2] - prev0[2]))
-        F = ((prev1[0] - prev0[0]) * (prev2[1] - prev0[1]) - (prev2[0] - prev0[0]) * (prev1[1] - prev0[1]))
+            A = ((prev1[1] - prev0[1]) * (prev2[2] - prev0[2]) - (prev2[1] - prev0[1]) * (prev1[2] - prev0[2]))
+            B = -((prev1[0] - prev0[0]) * (prev2[2] - prev0[2]) - (prev2[0] - prev0[0]) * (prev1[2] - prev0[2]))
+            C = ((prev1[0] - prev0[0]) * (prev2[1] - prev0[1]) - (prev2[0] - prev0[0]) * (prev1[1] - prev0[1]))
 
-        prevpolynormal = [D, E, F]
+            prevpolynormal = [A, B, C]
 
-        if polynormal != prevpolynormal:
-            newnormal = [polynormal[0] + prevpolynormal[0], polynormal[1] + prevpolynormal[1],
-                         polynormal[2] + prevpolynormal[2]]
-            return newnormal
+            if polynormal != prevpolynormal:
+                newnormal = [polynormal[0] + prevpolynormal[0], polynormal[1] + prevpolynormal[1],
+                             polynormal[2] + prevpolynormal[2]]
+                return newnormal
+            else:
+                prevprevpoly = object.shape[polyprevprev]
+                prevprev0 = prevprevpoly[0]
+                prevprev1 = prevprevpoly[1]
+                prevprev2 = prevprevpoly[2]
+
+                A = ((prevprev1[1] - prevprev0[1]) * (prevprev2[2] - prevprev0[2]) - (prevprev2[1] - prevprev0[1]) * (prevprev1[2] - prevprev0[2]))
+                B = -((prevprev1[0] - prevprev0[0]) * (prevprev2[2] - prevprev0[2]) - (prevprev2[0] - prevprev0[0]) * (prevprev1[2] - prevprev0[2]))
+                C = ((prevprev1[0] - prevprev0[0]) * (prevprev2[1] - prevprev0[1]) - (prevprev2[0] - prevprev0[0]) * (prevprev1[1] - prevprev0[1]))
+
+                prevprevpolynormal = [A, B, C]
+                newnormal = [polynormal[0] + prevprevpolynormal[0], polynormal[1] + prevprevpolynormal[1],
+                             polynormal[2] + prevprevpolynormal[2]]
+                return newnormal
         else:
             nextpoly = object.shape[polynext]
             next0 = nextpoly[0]
             next1 = nextpoly[1]
             next2 = nextpoly[2]
 
-            G = ((next1[1] - next0[1]) * (next2[2] - next0[2]) - (next2[1] - next0[1]) * (next1[2] - next0[2]))
-            H = -((next1[0] - next0[0]) * (next2[2] - next0[2]) - (next2[0] - next0[0]) * (next1[2] - next0[2]))
-            I = ((next1[0] - next0[0]) * (next2[1] - next0[1]) - (next2[0] - next0[0]) * (next1[1] - next0[1]))
+            A = ((next1[1] - next0[1]) * (next2[2] - next0[2]) - (next2[1] - next0[1]) * (next1[2] - next0[2]))
+            B = -((next1[0] - next0[0]) * (next2[2] - next0[2]) - (next2[0] - next0[0]) * (next1[2] - next0[2]))
+            C = ((next1[0] - next0[0]) * (next2[1] - next0[1]) - (next2[0] - next0[0]) * (next1[1] - next0[1]))
 
-            nextpolynormal = [G, H, I]
+            nextpolynormal = [A, B, C]
 
-            newnormal = [polynormal[0] + nextpolynormal[0], polynormal[1] + nextpolynormal[1],
-                         polynormal[2] + nextpolynormal[2]]
-            return newnormal
+            if polynormal != nextpolynormal:
+                newnormal = [polynormal[0] + nextpolynormal[0], polynormal[1] + nextpolynormal[1],
+                             polynormal[2] + nextpolynormal[2]]
+                return newnormal
+            else:
+                nextnextpoly = object.shape[polynextnext]
+                nextnext0 = nextnextpoly[0]
+                nextnext1 = nextnextpoly[1]
+                nextnext2 = nextnextpoly[2]
+
+                A = ((nextnext1[1] - nextnext0[1]) * (nextnext2[2] - nextnext0[2]) - (nextnext2[1] - nextnext0[1]) * (nextnext1[2] - nextnext0[2]))
+                B = -((nextnext1[0] - nextnext0[0]) * (nextnext2[2] - nextnext0[2]) - (nextnext2[0] - nextnext0[0]) * (nextnext1[2] - nextnext0[2]))
+                C = ((nextnext1[0] - nextnext0[0]) * (nextnext2[1] - nextnext0[1]) - (nextnext2[0] - nextnext0[0]) * (nextnext1[1] - nextnext0[1]))
+
+                nextnextpolynormal = [A, B, C]
+                newnormal = [polynormal[0] + nextnextpolynormal[0], polynormal[1] + nextnextpolynormal[1],
+                             polynormal[2] + nextnextpolynormal[2]]
+                return newnormal
     else:
         return polynormal
 
 
-def diffuseReflection(normal):
+def computeReflection(normal):
     intensity = []
 
     sqrtN = (normal[0]**2 + normal[1]**2 + normal[2]**2)**(1.0/2)
@@ -1200,7 +1334,7 @@ def diffuseReflection(normal):
 
                 VdotR = Vnormal[0] * Rnormal[0] + Vnormal[1] * Rnormal[1] + Vnormal[2] * Rnormal[2]
 
-                colorIntensity += Ip[i] * Ks[i] * (VdotR) ** N
+                colorIntensity += Ip[i] * Ks[i] * (VdotR ** N)
 
         intensity.append(round(colorIntensity * 255))
 
@@ -1225,59 +1359,6 @@ def computeR(Nnormal, Lnormal, NdotL):
             R.append(-Nnormal[i] + Lnormal[i] / tcphi)
 
     return R
-
-def computeVertexNormals(poly, polynum, object):
-    p0 = poly[0]
-    p1 = poly[1]
-    p2 = poly[2]
-
-    A = ((p1[1] - p0[1]) * (p2[2] - p0[2]) - (p2[1] - p0[1]) * (p1[2] - p0[2]))
-    B = -((p1[0] - p0[0]) * (p2[2] - p0[2]) - (p2[0] - p0[0]) * (p1[2] - p0[2]))
-    C = ((p1[0] - p0[0]) * (p2[1] - p0[1]) - (p2[0] - p0[0]) * (p1[1] - p0[1]))
-
-    polynormal = [A, B, C]
-
-    if object.tag is "cylinder" and 0 <= polynum <= 15:
-        polyprev = polynum - 1
-        polynext = polynum + 1
-
-        if polynum == 0:
-            polyprev = 15
-        elif polynum == 15:
-            polynext = 0
-
-        prevpoly = object.shape[polyprev]
-        prev0 = prevpoly[0]
-        prev1 = prevpoly[1]
-        prev2 = prevpoly[2]
-
-        D = ((prev1[1] - prev0[1]) * (prev2[2] - prev0[2]) - (prev2[1] - prev0[1]) * (prev1[2] - prev0[2]))
-        E = -((prev1[0] - prev0[0]) * (prev2[2] - prev0[2]) - (prev2[0] - prev0[0]) * (prev1[2] - prev0[2]))
-        F = ((prev1[0] - prev0[0]) * (prev2[1] - prev0[1]) - (prev2[0] - prev0[0]) * (prev1[1] - prev0[1]))
-
-        prevpolynormal = [D, E, F]
-
-        if polynormal != prevpolynormal:
-            newnormal = [polynormal[0] + prevpolynormal[0], polynormal[1] + prevpolynormal[1],
-                         polynormal[2] + prevpolynormal[2]]
-            return newnormal
-        else:
-            nextpoly = object.shape[polynext]
-            next0 = nextpoly[0]
-            next1 = nextpoly[1]
-            next2 = nextpoly[2]
-
-            G = ((next1[1] - next0[1]) * (next2[2] - next0[2]) - (next2[1] - next0[1]) * (next1[2] - next0[2]))
-            H = -((next1[0] - next0[0]) * (next2[2] - next0[2]) - (next2[0] - next0[0]) * (next1[2] - next0[2]))
-            I = ((next1[0] - next0[0]) * (next2[1] - next0[1]) - (next2[0] - next0[0]) * (next1[1] - next0[1]))
-
-            nextpolynormal = [G, H, I]
-
-            newnormal = [polynormal[0] + nextpolynormal[0], polynormal[1] + nextpolynormal[1],
-                         polynormal[2] + nextpolynormal[2]]
-            return newnormal
-    else:
-        return polynormal
 
 # ***************************** Interface Functions ***************************
 # Everything below this point implements the interface
