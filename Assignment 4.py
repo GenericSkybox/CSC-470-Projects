@@ -738,6 +738,43 @@ def scan(poly, polynum, object):
     table[1].append(computeVertexNormals(poly, polynum, object, 1))
     table[1].append(computeReflection(table[1][7]))
 
+    if SHADINGMODE == 1:
+        di1 = []
+        di2 = []
+
+        for pos in range(3):
+            if table[0][6] == 0 or round((table[1][8][pos] - table[0][8][pos]), 3) == 0:
+                di1.append(0)
+            else:
+                di1.append((table[1][8][pos] - table[0][8][pos]) / table[0][6])
+
+            if table[1][6] == 0 or round((table[1][8][pos] - table[0][8][pos]), 3) == 0:
+                di2.append(0)
+            else:
+                di2.append((table[1][8][pos] - table[0][8][pos]) / table[1][6])
+
+        """
+            print("Polynum: " + str(polynum))
+            print("di1: " + str(di1) + " di2: " + str(di2))
+            print("ymin-ymax Left: " + str(table[0][6]) + " ymin-ymax Right: " + str(table[1][6]) + " Intensity Left: " + str(
+                    table[0][8]) + " Intensity Right: " + str(table[1][8]))
+                    """
+
+    if SHADINGMODE == 2:
+        dn1 = []
+        dn2 = []
+
+        for pos in range(3):
+            if table[0][6] == 0:
+                dn1.append(0)
+            else:
+                dn1.append((table[1][7][pos] - table[0][7][pos]) / table[0][6])
+
+            if table[1][6] == 0:
+                dn2.append(0)
+            else:
+                dn2.append((table[1][7][pos] - table[0][7][pos]) / table[1][6])
+
 
     normal = computeVertexNormals(poly, polynum, object, 0)
 
@@ -749,35 +786,6 @@ def scan(poly, polynum, object):
         zHorLeft = table[0][4] - table[0][5]
         zHorRight = table[1][4] - table[1][5]
 
-        if SHADINGMODE == 1:
-            di1 = []
-            di2 = []
-
-            for pos in range(3):
-                if table[0][6] == 0:
-                    di1.append(0)
-                else:
-                    di1.append((table[1][8][pos] - table[0][8][pos]) / table[0][6])
-
-                if table[1][6] == 0:
-                    di2.append(0)
-                else:
-                    di2.append((table[1][8][pos] - table[0][8][pos]) / table[1][6])
-
-        if SHADINGMODE == 2:
-            dn1 = []
-            dn2 = []
-
-            for pos in range(3):
-                if table[0][6] == 0:
-                    dn1.append(0)
-                else:
-                    dn1.append((table[1][7][pos] - table[0][7][pos]) / table[0][6])
-
-                if table[1][6] == 0:
-                    dn2.append(0)
-                else:
-                    dn2.append((table[1][7][pos] - table[0][7][pos]) / table[1][6])
 
         if SHADINGMODE == 1:
             iHorLeft = list(map(sub, table[0][8], di1))
@@ -918,6 +926,43 @@ def scan(poly, polynum, object):
     table[1].append(computeVertexNormals(poly, polynum, object, 1))
     table[1].append(computeReflection(table[1][7]))
 
+    if SHADINGMODE == 1:
+        di1 = []
+        di2 = []
+
+        for pos in range(3):
+            if table[0][6] == 0 or round((table[1][8][pos] - table[0][8][pos]), 3) == 0:
+                di1.append(0)
+            else:
+                di1.append((table[1][8][pos] - table[0][8][pos]) / table[0][6])
+
+            if table[1][6] == 0 or round((table[1][8][pos] - table[0][8][pos]), 3) == 0:
+                di2.append(0)
+            else:
+                di2.append((table[1][8][pos] - table[0][8][pos]) / table[1][6])
+
+        """
+        print("Polynum: " + str(polynum))
+        print("di1: " + str(di1) + " di2: " + str(di2))
+        print("ymin-ymax Left: " + str(table[0][6]) + " ymin-ymax Right: " + str(table[1][6]) + " Intensity Left: " + str(
+                table[0][8]) + " Intensity Right: " + str(table[1][8]))
+                """
+
+    if SHADINGMODE == 2:
+        dn1 = []
+        dn2 = []
+
+        for pos in range(3):
+            if table[0][6] == 0:
+                dn1.append(0)
+            else:
+                dn1.append((table[1][7][pos] - table[0][7][pos]) / table[0][6])
+
+            if table[1][6] == 0:
+                dn2.append(0)
+            else:
+                dn2.append((table[1][7][pos] - table[0][7][pos]) / table[1][6])
+
     # Once we have our two "new" edges situated in the table, we can begin filling the polygon again, moving from left
     # to right
     # Since the ymin values of the last two edges should be the same, we just need to check if we passed one of them
@@ -925,36 +970,6 @@ def scan(poly, polynum, object):
     while pointer[1] > table[0][1]:
         zHorLeft = table[0][4] - table[0][5]
         zHorRight = table[1][4] - table[1][5]
-
-        if SHADINGMODE == 1:
-            di1 = []
-            di2 = []
-
-            for pos in range(3):
-                if table[0][6] == 0:
-                    di1.append(0)
-                else:
-                    di1.append((table[1][8][pos] - table[0][8][pos]) / table[0][6])
-
-                if table[1][6] == 0:
-                    di2.append(0)
-                else:
-                    di2.append((table[1][8][pos] - table[0][8][pos]) / table[1][6])
-
-        if SHADINGMODE == 2:
-            dn1 = []
-            dn2 = []
-
-            for pos in range(3):
-                if table[0][6] == 0:
-                    dn1.append(0)
-                else:
-                    dn1.append((table[1][7][pos] - table[0][7][pos]) / table[0][6])
-
-                if table[1][6] == 0:
-                    dn2.append(0)
-                else:
-                    dn2.append((table[1][7][pos] - table[0][7][pos]) / table[1][6])
 
 
         if SHADINGMODE == 1:
