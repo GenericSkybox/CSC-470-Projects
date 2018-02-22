@@ -10,15 +10,94 @@
 from tkinter import *
 
 # Here we're defining the window constants
-CanvasWidth = 600
-CanvasHeight = 600
+CanvasWidth = 800
+CanvasHeight = 800
 
+# ***************************** Backend Render Functions ***************************
+def trace_ray(flag, level, cop, ray):
+    intersect = [None, None, None]
+    intensity = [None, None, None]
+    obj_normal = [None, None, None]
+
+
+    if level == 0:
+        # Maximum depth exceeded -- return black
+        intensity = [0, 0, 0]
+    else:
+        # Check for intersection of ray with objects and set up RGB values corresponding to objects
+
+        # Set distance of closest object initially to a very large number
+        t = [100000]
+
+        # Initially no object has been intersected by the ray
+        object_code = -1
+
+        if checkerboard_intersection(cop, ray, t, intersect):
+            object_code = 0
+            print("checkerboard")
+
+        if sphere_intersection(cop, ray, t, intersect, obj_normal):
+            object_code = 1
+            print("green_sphere")
+
+        if object_code == 0:
+            checkerboard_point_intensity(intersect, intensity)
+        elif object_code == 1:
+            sphere_point_intensity(level, ray, intersect, obj_normal, intensity)
+        else:
+            intensity = [150, 150, 255]
+
+    return intensity
+
+def checkerboard_intersection(cop, ray, t, intersect):
+    return False
+def checkerboard_point_intensity(intersect, intensity):
+    return False
+def sphere_intersection(cop, ray, t, intersect, obj_normal):
+    return False
+def sphere_point_intensity(level, ray, intersect, obj_normal, intensity):
+    return False
 
 # ***************************** Interface Functions ***************************
 # Everything below this point implements the interface
 
 def render():
-    print("hi")
+    print("Render function entered")
+    # Center of Projection Vector (xs, ys, zs)
+    cop = [0, 0, -800]
+    # Maximum ray depth for reflecting object
+    depth = 5
+
+    # Screen X
+    for pixel_x in range(1, CanvasWidth, 1):
+        # Adjust the screen center
+        screen_x = pixel_x - (CanvasWidth / 2)
+
+        for pixel_y in range(1, CanvasHeight, 1):
+            # Adjust the screen center
+            screen_y = (CanvasHeight / 2) - pixel_y
+
+            # Compute vector for ray from center of projection through pixel (ray_i, ray_j, ray_k)
+            ray = [screen_x - cop[0], screen_y - cop[1], 0 - cop[2]]
+
+            # Trace the ray through the environment to obtain the pixel color
+            fillColorPercent = trace_ray(0, depth, cop, ray)
+
+            # Convert the fill color to a string of hex values
+            #fillColorPercent = [0, 0, 255]
+            fillColor = "#"
+
+            for i in range(3):
+                fillColorHex = hex(fillColorPercent[i]).split('x')[-1]
+
+                if len(fillColorHex) < 2:
+                    fillColorHex = "0%s" % fillColorHex
+                elif len(fillColorHex) > 2:
+                    fillColorHex = "FF"
+
+                fillColor += fillColorHex
+
+            w.create_rectangle(pixel_x, pixel_y, pixel_x, pixel_y, fill="", outline=fillColor)
 
 def quit():
     exit(0)
