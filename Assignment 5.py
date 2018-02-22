@@ -20,7 +20,6 @@ CanvasHeight = 600
 def render():
     print("hi")
 
-
 def quit():
     exit(0)
 
