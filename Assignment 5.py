@@ -1,11 +1,13 @@
 """
 # Name: Eric Ortiz
 # Student Number: 102-39-903
-# Date: 2/15/18
+# Date: 2/26/18
 # Assignment #5
 # Desc: This program renders non-polygonal objects using the ray tracing method via a recursive ray tracer already
         provided in class.
 """
+
+import math
 
 from tkinter import *
 
@@ -13,12 +15,26 @@ from tkinter import *
 CanvasWidth = 800
 CanvasHeight = 800
 
-# ***************************** Backend Render Functions ***************************
-def trace_ray(flag, level, cop, ray):
-    intersect = [None, None, None]
-    intensity = [None, None, None]
-    obj_normal = [None, None, None]
+# Lighting and Shading Constants
+# L is the lighting vector
+L = [1, 1, -1]
+# Ia is the level of ambient lighting - which is just a percentage for RGB
+Ia = [0.3, 0.3, 0.3]
+# Ip is the level of point lighting - which is a percentage for RGB
+Ip = [0.5, 0.5, 0.5]
+# Ks is the constant of specular reflectivity for the object, given in an array of percentages in RGB
+Ks = [0.7, 0.7, 0.7]
+# V is the view vector
+V = [0, 0, -100]
+# N is shininess of the surface
+N = 10
 
+# ***************************** Backend Render Functions ***************************
+# This function traces the ray through the environment
+def trace_ray(level, cop, ray, intensity):
+    # We need to "initialize" intersect and obj_normal
+    intersect = [None, None, None]
+    obj_normal = [None, None, None]
 
     if level == 0:
         # Maximum depth exceeded -- return black
@@ -32,35 +48,314 @@ def trace_ray(flag, level, cop, ray):
         # Initially no object has been intersected by the ray
         object_code = -1
 
+        # Check for checkerboard intersection
         if checkerboard_intersection(cop, ray, t, intersect):
             object_code = 0
             print("checkerboard")
 
-        if sphere_intersection(cop, ray, t, intersect, obj_normal):
+        # Check for intersection with Sphere 1
+        if sphere_intersection(cop, ray, t, intersect, obj_normal, 0, -400, 600, 100):
             object_code = 1
             print("green_sphere")
 
+        # Check for intersection with Sphere 2
+        if sphere_intersection(cop, ray, t, intersect, obj_normal, -200, -250, 1000, 200):
+            object_code = 2
+            print("blue_sphere")
+
+        # Depending on which object was intersected, return that object's point intensity
         if object_code == 0:
-            checkerboard_point_intensity(intersect, intensity)
+            checkerboard_point_intensity(level, ray, intersect, intensity)
         elif object_code == 1:
-            sphere_point_intensity(level, ray, intersect, obj_normal, intensity)
+            # For each sphere you need to provide the base color of the sphere
+            # This sphere is green
+            base = [50, 200, 50]
+            sphere_point_intensity(level, ray, intersect, obj_normal, intensity, base)
+        elif object_code == 2:
+            # This sphere is blue
+            base = [50, 50, 200]
+            sphere_point_intensity(level, ray, intersect, obj_normal, intensity, base)
         else:
-            intensity = [150, 150, 255]
+            # If no objects were intersected, return the background color
+            intensity[0] = 150
+            intensity[1] = 150
+            intensity[2] = 255
 
     return intensity
 
+
+# This function computes whether or not the checkerboard as been intersected
 def checkerboard_intersection(cop, ray, t, intersect):
-    return False
-def checkerboard_point_intensity(intersect, intensity):
-    return False
-def sphere_intersection(cop, ray, t, intersect, obj_normal):
-    return False
-def sphere_point_intensity(level, ray, intersect, obj_normal, intensity):
-    return False
+    # Normal of the plane
+    a = 0
+    b = 1
+    c = 0
+
+    # Point on the plane
+    x1 = 0
+    y1 = -500
+    z1 = 0
+
+    # Compute intersection of ray with plane
+    denom = a * ray[0] + b * ray[1] + c * ray[2]
+
+    if math.fabs(denom) <= 0.001:
+        # Ray is parallel to plane
+        return False
+    else:
+        d = a * x1 + b * y1 + c * z1
+        t_object = -(a * cop[0] + b * cop[1] + c * cop[2] - d) / denom
+        x = cop[0] + ray[0] * t_object
+        y = cop[1] + ray[1] * t_object
+        z = cop[2] + ray[2] * t_object
+
+        if (z < 0.0) or (z > 8000) or (t_object < 0.0001):
+            # No visible intersection
+            return False
+        elif t[0] < t_object:
+            # Another object is closer
+            return False
+        else:
+            # Update t and the intersection point
+            t[0] = t_object
+            intersect[0] = x
+            intersect[1] = y
+            intersect[2] = z
+            return True
+
+
+# This function computes the color of the checkerboard
+def checkerboard_point_intensity(level, ray, intersect, intensity):
+    # Color_flag determines whether or not the square is red or white
+    if intersect[0] >= 0.0:
+        color_flag = True
+    else:
+        color_flag = False
+
+    if math.fabs(math.fmod(intersect[0], 400.0)) > 200.0:
+        color_flag = not color_flag
+
+    if math.fabs(math.fmod(intersect[2], 400.0)) > 200.0:
+        color_flag = not color_flag
+
+    # These calculations are used in the trace_ray call
+    n_norm = [0, 1, 0]
+
+    magnitude = (ray[0] * ray[0] + ray[1] * ray[1] + ray[2] * ray[2]) ** (1 / 2.0)
+    ray_norm = [0, 0, 0]
+
+    for i in range(3):
+        ray_norm[i] = ray[i] / magnitude
+
+    # Calculate the reflection vector
+    cosine_phi = 0
+    for i in range(3):
+        cosine_phi += (-ray_norm[i]) * n_norm[i]
+
+    r = [0, 0, 0]
+    if cosine_phi > 0:
+        for i in range(3):
+            r[i] = n_norm[i] - (-ray_norm[i]) / (2 * cosine_phi)
+    elif cosine_phi == 0:
+        for i in range(3):
+            r[i] = ray_norm[i]
+    else:
+        for i in range(3):
+            r[i] = -n_norm[i] + (-ray_norm[i]) / (2 * cosine_phi)
+
+    # Trace the reflection ray
+    trace_ray(level - 1, intersect, r, intensity)
+
+    if color_flag:
+        # Red
+
+        # Implement the lighting model from the previous assignment
+        lightingModel = computeReflection(n_norm, [255, 0, 0], True)
+
+        intensity[0] = 0.4 * intensity[0] + lightingModel[0]
+        intensity[1] = 0.4 * intensity[1] + lightingModel[1]
+        intensity[2] = 0.4 * intensity[2] + lightingModel[2]
+    else:
+        # White
+
+        # Implement the lighting model from the previous assignment
+        lightingModel = computeReflection(n_norm, [255, 255, 255], True)
+
+        intensity[0] = 0.4 * intensity[0] + lightingModel[0]
+        intensity[1] = 0.4 * intensity[1] + lightingModel[1]
+        intensity[2] = 0.4 * intensity[2] + lightingModel[2]
+
+
+# This function computes whether or not the sphere has been intersected
+def sphere_intersection(cop, ray, t, intersect, obj_normal, l, m, n, r):
+    # Compute Intersection of Ray with Sphere
+    asphere = ray[0] * ray[0] + ray[1] * ray[1] + ray[2] * ray[2]
+    bsphere = 2 * ray[0] * (cop[0] - l) + 2 * ray[1] * (cop[1] - m) + 2 * ray[2] * (cop[2] - n)
+    csphere = l * l + m * m + n * n + cop[0] * cop[0] + cop[1] * cop[1] + cop[2] * cop[2] + 2 * (-l * cop[0] - m * cop[1] - n * cop[2]) - r * r
+
+    discriminant = bsphere * bsphere - 4 * asphere * csphere
+
+    if discriminant < 0:
+        return False
+    else:
+        ts1 = (-bsphere + discriminant ** (1 / 2.0)) / (2 * asphere)
+        ts2 = (-bsphere - discriminant ** (1 / 2.0)) / (2 * asphere)
+
+        if ts1 >= ts2:
+            tsphere = ts2
+        else:
+            tsphere = ts1
+
+        if t[0] < tsphere:
+            # Another object is closer
+            return False
+        elif tsphere < 0.0:
+            # No visible intersection
+            return False
+        else:
+            t[0] = tsphere
+
+            for i in range(3):
+                intersect[i] = cop[i] + ray[i] * tsphere
+
+            # Reset the object normal using the intersect and the sphere's center
+            obj_normal[0] = intersect[0] - l
+            obj_normal[1] = intersect[1] - m
+            obj_normal[2] = intersect[2] - n
+
+            return True
+
+
+# This function compute the color of the sphere
+def sphere_point_intensity(level, ray, intersect, n, intensity, base):
+    # Normalize the incoming ray vector and the surface normal vector
+    magnitude = (ray[0] * ray[0] + ray[1] * ray[1] + ray[2] * ray[2]) ** (1/2.0)
+    ray_norm = [0, 0, 0]
+
+    for i in range(3):
+        ray_norm[i] = ray[i] / magnitude
+
+    magnitude = (n[0] * n[0] + n[1] * n[1] + n[2] * n[2]) ** (1/2.0)
+    n_norm = [0, 0, 0]
+
+    for i in range(3):
+        n_norm[i] = n[i] / magnitude
+
+    # Calculate the reflection vector
+    cosine_phi = 0
+    for i in range(3):
+        cosine_phi += (-ray_norm[i]) * n_norm[i]
+
+    r = [0, 0, 0]
+    if cosine_phi > 0:
+        for i in range(3):
+            r[i] = n_norm[i] - (-ray_norm[i]) / (2 * cosine_phi)
+    elif cosine_phi == 0:
+        for i in range(3):
+            r[i] = ray_norm[i]
+    else:
+        for i in range(3):
+            r[i] = -n_norm[i] + (-ray_norm[i]) / (2 * cosine_phi)
+
+    # Trace the reflection ray
+    trace_ray(level - 1, intersect, r, intensity)
+
+    # Implement the lighting model from the previous assignment
+    lightingModel = computeReflection(n, base, False)
+
+    # Add effect of local color
+    intensity[0] = 0.7 * intensity[0] + lightingModel[0]
+    intensity[1] = 0.7 * intensity[1] + lightingModel[1]
+    intensity[2] = 0.7 * intensity[2] + lightingModel[2]
+
+
+# This function returns the intensity of light at a point, given its normal vector
+def computeReflection(normal, base, bright):
+    # We'll eventually return an intensity, so let's set it up at the beginning
+    finalIntensity = []
+
+    # We need to check to see if this object is a bright object or not, and set the ambient lighting accordingly
+    if bright:
+        Ia = [0.6, 0.6, 0.6]
+    else:
+        Ia = [0.3, 0.3, 0.3]
+
+    # Next we need to create Kd based off of the base color passed in
+    Kd = []
+    for i in range(3):
+        Kd.append(base[i]/255)
+
+    # Normalize the normal (in case it isn't normal)
+    sqrtN = (normal[0]**2 + normal[1]**2 + normal[2]**2)**(1.0/2)
+    Nnormal = [normal[0]/sqrtN, normal[1]/sqrtN, normal[2]/sqrtN]
+
+    # Normalize the lighting vector
+    sqrtL = (L[0] ** 2 + L[1] ** 2 + L[2] ** 2) ** (1.0 / 2)
+    Lnormal = [L[0] / sqrtL, L[1] / sqrtL, L[2] / sqrtL]
+
+    # Find the dot product of the two normalized vectors
+    NdotL = Nnormal[0] * Lnormal[0] + Nnormal[1] * Lnormal[1] + Nnormal[2] * Lnormal[2]
+
+    # For each component of the intensity (RGB), we need to calculate the ambient, emitted, and specular reflection of
+    # the point
+    for i in range(3):
+        # We start with calculating the ambient diffuse reflection (for this color)
+        colorIntensity = Ia[i] * Kd[i]
+
+        # Then we need to calculate the emitted diffuse reflection next and add it to the other intensity we just found
+        colorIntensity += (Ip[i] * Kd[i] * NdotL)
+
+        # We need to determine the reflection vector for specular reflection
+        R = computeR(Nnormal, Lnormal, NdotL)
+
+        # Then we normalize the reflection vector
+        sqrtR = (R[0] ** 2 + R[1] ** 2 + R[2] ** 2) ** (1.0 / 2)
+        Rnormal = [R[0] / sqrtR, R[1] / sqrtR, R[2] / sqrtR]
+
+        # And normalize the viewing vector
+        sqrtV = (V[0] ** 2 + V[1] ** 2 + V[2] ** 2) ** (1.0 / 2)
+        Vnormal = [V[0] / sqrtV, V[1] / sqrtV, V[2] / sqrtV]
+
+        # Find the dot product of them both
+        VdotR = Vnormal[0] * Rnormal[0] + Vnormal[1] * Rnormal[1] + Vnormal[2] * Rnormal[2]
+
+        # And finally calculate the intensity of the specular reflection
+        colorIntensity += Ip[i] * Ks[i] * (VdotR ** N)
+
+        # At the end of it all, we add the final color intensity to the list of color intensities for the point
+        finalIntensity.append(round(colorIntensity * 255))
+
+    # Finally return the intensity list of the point
+    return finalIntensity
+
+
+# This function computes the reflection vector
+def computeR(Nnormal, Lnormal, NdotL):
+    # Let's just go ahead and intialize R and compute 2 * theta(phi)
+    R = []
+    tcphi = 2 * NdotL
+
+    # Determine R based off of the value of 2 * theta(phi)
+    if tcphi > 0:
+        for i in range(3):
+            R.append(Nnormal[i] - Lnormal[i] / tcphi)
+
+    elif tcphi == 0:
+        for i in range(3):
+            R.append(-Lnormal[i])
+
+    else:
+        for i in range(3):
+            R.append(-Nnormal[i] + Lnormal[i] / tcphi)
+
+    # Return R (I'm done)
+    return R
+
 
 # ***************************** Interface Functions ***************************
 # Everything below this point implements the interface
 
+# This function is tied to the render button
 def render():
     print("Render function entered")
     # Center of Projection Vector (xs, ys, zs)
@@ -81,14 +376,13 @@ def render():
             ray = [screen_x - cop[0], screen_y - cop[1], 0 - cop[2]]
 
             # Trace the ray through the environment to obtain the pixel color
-            fillColorPercent = trace_ray(0, depth, cop, ray)
+            intensity = [0, 0, 0]
+            fillColorPercent = trace_ray(depth, cop, ray, intensity)
 
             # Convert the fill color to a string of hex values
-            #fillColorPercent = [0, 0, 255]
             fillColor = "#"
-
             for i in range(3):
-                fillColorHex = hex(fillColorPercent[i]).split('x')[-1]
+                fillColorHex = hex(round(fillColorPercent[i])).split('x')[-1]
 
                 if len(fillColorHex) < 2:
                     fillColorHex = "0%s" % fillColorHex
@@ -97,8 +391,11 @@ def render():
 
                 fillColor += fillColorHex
 
+            # Finally color the pixel
             w.create_rectangle(pixel_x, pixel_y, pixel_x, pixel_y, fill="", outline=fillColor)
 
+
+# This function is tied to the quit button
 def quit():
     exit(0)
 
@@ -138,156 +435,3 @@ quitButton = Button(quitcontrols, text="GET ME OUTTA HERE!!", fg="red", command=
 quitButton.pack()
 
 root.mainloop()
-
-"""
-From here on down is all of the C++ code that Dr. O'Neal used in his project
-
-#include <stdio.h>
-#include <math.h>
-
-#include <suntool/sunview.h>
-#include <suntool/panel.h>
-#include <suntool/canvas.h>
-#include <suntool/scrollbar.h>
-#include <suntool/seln.h>
-
-static short icon_image[] = {
-#include </user/include/images/core_eye.icon>
-};
-
-DEFINE_ICON_FROM_IMAGE(render_icon, icon_image);
-
-Window frame;
-Canvas canvas_sw, panel_sw;
-
-Pixwin *pw;
-Scrollbar bar1, bar2;
-
-static void render_proc(), quit_proc();
-
-main(argc, argv)
-int argc; char **argv;
-
-{
-    frame = window_create(  NULL, FRAME,
-                            FRAME_LABEL,    "Example Canvas",
-                            FRAME_ICON,     &render_icon,
-                            WIN_WIDTH,      600,
-                            WIN_HEIGHT,     600,
-                            FRAME_ARGS,     argc, argv,
-                            0);
-    
-    panel_sw = window_create(frame, PANEL, 0);
-    
-    panel_create_item(  panel_sw, PANEL_BUTTON,
-                        PANEL_LABEL_IMAGE, panel_button_image(panel_sw, "Render", 6, 0),
-                        PANEL_NOTIFY_PROC, render_proc,
-                        0);
-    
-    panel_create_item(  panel_sw, PANEL_BUTTON,
-                        PANEL_LABEL_IMAGE, panel_button_image(panel_sw, "Quit", 4, 0),
-                        PANEL_NOTIFY_PROC, quit_proc,
-                        0);
-                        
-    window_fit_height(panel_sw);
-    
-    bar1 = scrollbar_create(SCROLL_PLACEMENT,   SCROLL_WEST,
-                            SCROLL_LINE_HEIGHT, 4,
-                            0);
-    
-    bar2 = scrollbar_create(SCROLL_PLACEMENT,   SCROLL_NORTH,
-                            SCROLL_DIRECTION,   SCROLL_HORIZONTAL,
-                            SCROLL_LINE_HEIGHT, 4,
-                            0);
-    
-    canvas_sw = window_create(  frame,                      CANVAS,
-                                WIN_BELOW,                  panel_sw,
-                                CANVAS_AUTO_SHRINK,         FALSE,
-                                CANVAS_WIDTH,               1200,
-                                CANVAS_HEIGHT,              1200,
-                                WIN_VERTICAL_SCROLLBAR,     bar1,
-                                WIN_HORIZONTAL_SCROLLBAR,   bar2,
-                                0);
-    
-    window_main_loop(frame);
-    exit(0);
-}
-
-static void
-render_proc(/* ARGS UNUSED */)
-{
-    static void setup_drawing_canvas();
-    static void trace_ray();
-    static void put_pixel();
-    
-    int pixel_x, pixel_y, screen_x, screen_y;
-    double xs, ys, zs;          /* center of projection */
-    int ray_i, ray_j, ray_k;    /* vector for light entering eye */
-    int ir, ig, ib;             /* intensity of red, green, and blue primaries */
-    int depth;                  /* maximum ray depth for reflecting objects */
-    
-    depth = 5;                  /* initialize maximum ray depth */
-    
-    setup_drawing_canvas();
-    
-    /* center of projection */
-    xs = 0; ys = 0; zs = -800;
-    
-    for ( pixel_x = 1; pixel_x <=1200; pixel_x++)
-    {
-        pw_batch_on(pw);        /* batch a vertical swipe */
-        screen_x = pixel_x - 600;
-        for ( pixel_y = 1; pixel_y <= 1200; pixel_y++)
-        {
-            screen_y = 600 - pixel_y;
-            
-            /* compute vector for ray from center of projection through pixel */
-            ray_i = screen_x - xs;
-            ray_j = screen_y - ys;
-            ray_k = 0 - zs;
-            
-            /* trace the ray through the environment to obtain the pixel color */
-            trace_ray(  0, depth, xs, ys, zs,
-                        (double) ray_i, (double) ray_j, (double) ray_k,
-                        &ir, &ig, &ib);
-            
-            put_pixel(pixel_x, pixel_y, ir, ig, ib);
-        }
-        pw_batch_off(pw);       /* end of vertical swipe */
-    }
-}
-
-static void
-trace_ray(flag, level, xs, ys, zs, ray_i, ray_j, ray_k, ir, ig, ib)
-int flag, level;
-double xs, ys, zs, ray_i, ray_j, ray_k;
-int *ir, *ig, *ib;
-{
-    static int sphere1_intersection();
-    static int sphere2_intersection();
-    static int checkerboard_intersection();
-    static void checkerboard_point_intensity();
-    static void sphere1_point_intensity();
-    static void sphere2_point_intensity();
-    
-    double t;                   /* distance of closest object */
-    double intersect_x;
-    double intersect_y;         /* intersection point of ray and object */
-    double intersect_z;
-    double obj_normal_x;
-    double obj_normal_y;        /* normal of closest object at intersect point */
-    double obj_normal_z;
-    int object_code;            /* integer code for the intersected object */
-    int object_r, object_g, object_b;   /* RGB values of an object */
-    
-    if (level == 0)
-    {
-        /* maximum depth exceeded -- return black */
-        *ir = 0; *ig = 0; *ib = 0;
-    }
-    else
-    {
-        
-    }
-}
-"""
