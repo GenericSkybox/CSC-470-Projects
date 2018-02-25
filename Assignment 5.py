@@ -69,11 +69,11 @@ def trace_ray(level, cop, ray, intensity):
         elif object_code == 1:
             # For each sphere you need to provide the base color of the sphere
             # This sphere is green
-            base = [50, 200, 50]
+            base = [0, 255, 0]
             sphere_point_intensity(level, ray, intersect, obj_normal, intensity, base)
         elif object_code == 2:
             # This sphere is blue
-            base = [50, 50, 200]
+            base = [0, 0, 255]
             sphere_point_intensity(level, ray, intersect, obj_normal, intensity, base)
         else:
             # If no objects were intersected, return the background color
