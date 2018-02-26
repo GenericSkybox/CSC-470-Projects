@@ -51,17 +51,17 @@ def trace_ray(level, cop, ray, intensity):
         # Check for checkerboard intersection
         if checkerboard_intersection(cop, ray, t, intersect):
             object_code = 0
-            print("checkerboard")
+            #print("checkerboard")
 
         # Check for intersection with Sphere 1
         if sphere_intersection(cop, ray, t, intersect, obj_normal, 0, -400, 600, 100):
             object_code = 1
-            print("green_sphere")
+            #print("green_sphere")
 
         # Check for intersection with Sphere 2
         if sphere_intersection(cop, ray, t, intersect, obj_normal, -200, -250, 1000, 200):
             object_code = 2
-            print("blue_sphere")
+            #print("blue_sphere")
 
         # Depending on which object was intersected, return that object's point intensity
         if object_code == 0:
@@ -331,7 +331,7 @@ def computeReflection(normal, base, bright):
 
 # This function computes the reflection vector
 def computeR(Nnormal, Lnormal, NdotL):
-    # Let's just go ahead and intialize R and compute 2 * theta(phi)
+    # Let's just go ahead and initialize R and compute 2 * theta(phi)
     R = []
     tcphi = 2 * NdotL
 
@@ -393,6 +393,7 @@ def render():
 
             # Finally color the pixel
             w.create_rectangle(pixel_x, pixel_y, pixel_x, pixel_y, fill="", outline=fillColor)
+        w.update()
 
 
 # This function is tied to the quit button
